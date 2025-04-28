@@ -1,23 +1,7 @@
-import { SignUp, useClerk } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
-import React, { useState } from "react";
+import { SignUp } from "@clerk/clerk-react";
+import React from "react";
 
 function SignUpPage() {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleAfterSignUp = async () => {
-    try {
-      setIsLoading(true);
-      // Any additional logic you want to perform after signup
-      await navigate("/");
-    } catch (error) {
-      console.error("Error during sign up:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="w-full min-h-screen flex flex-col md:flex-row items-center justify-center p-4">
       <div className="max-w-6xl w-full">
@@ -53,8 +37,8 @@ function SignUpPage() {
                 </div>
               </div>
             </div>
-              {/* Terms and Privacy Section */}
-              <div className="text-sm mt-2">
+            {/* Terms and Privacy Section */}
+            <div className="text-sm mt-2">
               <p className="text-gray-500">
                 By creating an account, you agree to our{" "}
                 <a href="#" className="text-green-600 hover:text-green-700 font-medium transition-all">
@@ -102,13 +86,12 @@ function SignUpPage() {
                   },
                 }}
                 afterSignUpUrl="/"
-                redirectUrl="/"
+                afterSignInUrl="/"
                 routing="path"
                 path="/sign-up"
                 signInUrl="/login"
               />
             </div>
-
           </div>
         </div>
       </div>

@@ -1,16 +1,7 @@
-import { SignIn, useClerk } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import { SignIn } from "@clerk/clerk-react";
 import React from "react";
 
 function Login() {
-  const navigate = useNavigate();
-  const { redirectToSignUp } = useClerk();
-
-  // Handle after sign in
-  const handleAfterSignIn = () => {
-    navigate("/");
-  };
-
   return (
     <div className="w-full flex flex-col justify-center items-center gap-3 py-7 px-4 text-gray-800">
       <div className="flex flex-col justify-center items-center max-w-xl w-full space-y-2">
@@ -42,8 +33,8 @@ function Login() {
             routing="path"
             path="/login"
             signUpUrl="/sign-up"
-            fallbackRedirectUrl="/"
-            forceRedirectUrl="/"
+            afterSignInUrl="/"
+            afterSignUpUrl="/"
           />
         </div>
       </div>

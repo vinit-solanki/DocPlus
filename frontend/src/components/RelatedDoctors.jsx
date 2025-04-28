@@ -1,48 +1,51 @@
+import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '@/context/AppContext';
-import React from 'react'
 import { useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
-import { useEffect } from 'react';
-const RelatedDoctors = ({docId, speciality}) => {
-    const navigate = useNavigate();
-    const {doctors} = useContext(AppContext);
-    const [relatedDoctors, setRelatedDoctors] = React.useState([]);
-    const [loading, setLoading] = React.useState(true);
 
-    useEffect(()=>{
-        if(doctors.length>0 && speciality){
-            const doctorData = doctors.find((doc) => doc._id === docId);
-            const relatedDocs = doctors.filter((doc) => doc.speciality === doctorData.speciality && doc._id !== docId);
-            setRelatedDoctors(relatedDocs);
-            setLoading(false);
-        }
-    }, [doctors, speciality, docId])
-  return (
-    <div>
-        {loading ? <p className='text-gray-600 text-lg font-medium'>Loading...</p>
-        :
-        <div className='w-full flex flex-col items-center gap-4 py-16 px-4 text-gray-800'>
-        <h1 className='text-3xl font-md'>Related Doctors</h1>
-        <div className='flex justify-center items-center gap-4 w-full'>
-        {relatedDoctors.slice(0,5).map((doctor, index)=>{
-            return (
-            <div onClick={()=>navigate(`/appointment/${doctor._id}`)} key={index} className="p-3 border border-green-600 rounded-xl overflow-hidden flex flex-col items-center gap-4 cursor-pointer hover:translate-y-[-10px] transition smooth duration-500">
-                <img className='bg-blue-50' src={doctor.image} alt="" />
-                <div className='p-4'> 
-                <div className='flex items-center gap-2 text-sm text-center text-green-500'>
-                    <p className='w-2 h-2 bg-green-500 rounded-full'></p> <p>Available</p> 
-                </div>
-                </div>
-                <p className='text-gray-900 text-lg font-md'>{doctor.name}</p>
-                <p className='text-gray-600 text-sm'>{doctor.speciality}</p>
-            </div>)
+function RelatedDoctors({ docId, speciality }) {
+  const { doctors } = useContext(AppContext);
+  const [relatedDoctors, setRelatedDoctors] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (doctors.length > 0 && speciality) {
+      const filteredDoctors = doctors.filter(
+        (doctor) =>
+          doctor._id !== docId &&
+          doctor.speciality.trim().toLowerCase() === speciality.trim().toLowerCase()
+      );
+      setRelatedDoctors(filteredDoctors);
     }
-)}
-</div>
-    </div> 
-        }
+  }, [doctors, docId, speciality]);
+
+  return (
+    <div className="w-full mt-8">
+      <h2 className="text-xl font-semibold mb-4 text-gray-800">Related Doctors</h2>
+      {relatedDoctors.length === 0 ? (
+        <p className="text-gray-600">No related doctors found.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {relatedDoctors.map((doctor) => (
+            <div
+              key={doctor._id}
+              onClick={() => navigate(`/appointment/${doctor._id}`)}
+              className="p-4 border border-gray-300 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex flex-col items-center gap-3"
+            >
+              <img
+                className="w-24 h-24 rounded-full object-cover bg-blue-50"
+                src={doctor.image}
+                alt={doctor.name}
+              />
+              <div className="text-center">
+                <p className="text-gray-900 text-lg font-semibold">{doctor.name}</p>
+                <p className="text-gray-600 text-sm">{doctor.speciality}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  )
+  );
 }
 
-export default RelatedDoctors
+export default RelatedDoctors;

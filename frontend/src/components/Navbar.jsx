@@ -34,9 +34,9 @@ const Navbar = () => {
           <li>Contact</li>
         </NavLink>
         <SignedIn>
-          <NavLink to="/profile">
+          {/* <NavLink to="/profile">
             <li>My Profile</li>
-          </NavLink>
+          </NavLink> */}
         </SignedIn>
       </ul>
 
@@ -97,9 +97,9 @@ const Navbar = () => {
                 <li>Contact</li>
               </NavLink>
               <SignedIn>
-                <NavLink to="/profile" onClick={() => setShowMenu(false)}>
+                {/* <NavLink to="/profile" onClick={() => setShowMenu(false)}>
                   <li>My Profile</li>
-                </NavLink>
+                </NavLink> */}
               </SignedIn>
             </ul>
             

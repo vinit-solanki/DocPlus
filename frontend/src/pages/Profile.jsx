@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { assets } from "@/assets/assets_frontend/assets";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
+import axios from 'axios';
 
 function Profile() {
-  const { user, isLoaded, isSignedIn } = useUser();
+  const { user, isLoaded, isSignedIn, getToken } = useAuth();
   const [userData, setUserData] = useState({
     name: "User",
     image: assets.profile_image,
@@ -11,8 +12,8 @@ function Profile() {
     phone: "No Phone Number Provided",
     address: "No Address Provided",
     gender: "",
-    dob: "Not Provided",
-    bloodGroup: "Not Provided",
+    dob: "",
+    bloodGroup: "",
   });
   const [isEdit, setIsEdit] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,41 +22,54 @@ function Profile() {
 
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
-      const metadata = user.publicMetadata || {};
-      
-      setUserData({
-        name: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
-        image: user.imageUrl || assets.profile_image,
-        email: user.primaryEmailAddress?.emailAddress || "No Email Provided",
-        phone: metadata.phone || "No Phone Number Provided",
-        address: metadata.address || "No Address Provided",
-        gender: metadata.gender || "",
-        dob: metadata.dob || "Not Provided",
-        bloodGroup: metadata.bloodGroup || "Not Provided",
-      });
+      const fetchPatient = async () => {
+        try {
+          const token = await getToken();
+          const response = await axios.get('http://localhost:3000/api/patients', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = response.data;
+          setUserData({
+            name: data.name || user.fullName || "User",
+            image: user.imageUrl || assets.profile_image,
+            email: data.email || user.primaryEmailAddress?.emailAddress || "No Email Provided",
+            phone: data.phone || "No Phone Number Provided",
+            address: data.address || "No Address Provided",
+            gender: data.gender || "",
+            dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : "",
+            bloodGroup: data.bloodGroup || "",
+          });
+        } catch (err) {
+          setError(err.response?.data?.message || 'Failed to load profile data.');
+          console.error('Error fetching patient:', err);
+        }
+      };
+      fetchPatient();
     }
-  }, [user, isLoaded, isSignedIn]);
+  }, [user, isLoaded, isSignedIn, getToken]);
 
   const handleSave = async () => {
     setIsLoading(true);
     setError(null);
-    
     try {
-        setUserData((prev) => ({
-          ...prev,
-          name: userData.name,
-          phone: userData.phone,
-          address: userData.address,
-          gender: userData.gender,
-          dob: userData.dob,
-          bloodGroup: userData.bloodGroup
-        }));
-        setIsEdit(false);
-        setSuccessMessage('Profile updated successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      console.error('Error updating user data:', error);
-      setError('Failed to update profile. Please try again.');
+      const token = await getToken();
+      await axios.put('http://localhost:3000/api/patients', {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        address: userData.address,
+        gender: userData.gender,
+        dob: userData.dob,
+        bloodGroup: userData.bloodGroup,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setIsEdit(false);
+      setSuccessMessage('Profile updated successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+      console.error('Error updating profile:', err);
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +94,6 @@ function Profile() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
-        {/* Profile Header */}
         <div className="flex items-center gap-4 mb-8">
           <img 
             src={userData.image} 
@@ -103,10 +116,7 @@ function Profile() {
             <p className="text-gray-600">{userData.email}</p>
           </div>
         </div>
-
-        {/* Profile Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Phone Number */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Phone Number</label>
             {isEdit ? (
@@ -122,8 +132,6 @@ function Profile() {
               <p className="text-gray-800">{userData.phone}</p>
             )}
           </div>
-
-          {/* Address */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Address</label>
             {isEdit ? (
@@ -139,8 +147,6 @@ function Profile() {
               <p className="text-gray-800">{userData.address}</p>
             )}
           </div>
-
-          {/* Gender */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Gender</label>
             {isEdit ? (
@@ -160,8 +166,6 @@ function Profile() {
               <p className="text-gray-800 capitalize">{userData.gender || "Not Specified"}</p>
             )}
           </div>
-
-          {/* Date of Birth */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
             {isEdit ? (
@@ -174,11 +178,9 @@ function Profile() {
                 className="border rounded-md px-3 py-2 w-full"
               />
             ) : (
-              <p className="text-gray-800">{userData.dob}</p>
+              <p className="text-gray-800">{userData.dob || "Not Provided"}</p>
             )}
           </div>
-
-          {/* Blood Group */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Blood Group</label>
             {isEdit ? (
@@ -200,12 +202,10 @@ function Profile() {
                 <option value="O-">O-</option>
               </select>
             ) : (
-              <p className="text-gray-800">{userData.bloodGroup}</p>
+              <p className="text-gray-800">{userData.bloodGroup || "Not Provided"}</p>
             )}
           </div>
         </div>
-
-        {/* Action Buttons */}
         <div className="mt-8 flex flex-col gap-2">
           {error && <p className="text-red-600 text-sm">{error}</p>}
           {successMessage && (
