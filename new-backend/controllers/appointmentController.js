@@ -1,7 +1,14 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+require('dotenv').config();
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 exports.createAppointment = async (req, res) => {
   try {
@@ -92,6 +99,7 @@ exports.cancelAppointment = async (req, res) => {
     if (slot) {
       slot.isAvailable = true;
       await doctor.save();
+   部分
     }
 
     appointment.status = 'cancelled';
@@ -105,12 +113,12 @@ exports.cancelAppointment = async (req, res) => {
   }
 };
 
-exports.createCheckoutSession = async (req, res) => {
+exports.createRazorpayOrder = async (req, res) => {
   try {
     const { userId } = req.auth;
     const { appointmentId } = req.body;
 
-    console.log('Creating checkout session for clerkId:', userId, 'appointmentId:', appointmentId);
+    console.log('Creating Razorpay order for clerkId:', userId, 'appointmentId:', appointmentId);
 
     const appointment = await Appointment.findById(appointmentId).populate('doctorId', 'name fees');
     if (!appointment) {
@@ -126,59 +134,53 @@ exports.createCheckoutSession = async (req, res) => {
       return res.status(400).json({ message: 'Payment not allowed for this appointment' });
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Appointment with ${appointment.doctorId.name}`,
-              description: `Date: ${appointment.date.toLocaleDateString()}, Time: ${appointment.time}`,
-            },
-            unit_amount: appointment.fees * 100, // Stripe expects amount in cents
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `http://localhost:5173/my-appointments?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5173/my-appointments`,
-      metadata: {
-        appointmentId: appointmentId,
-        patientId: patient._id.toString(),
-      },
-    });
+    const options = {
+      amount: appointment.fees * 100, // Amount in paise
+      currency: 'INR',
+      receipt: `appointment_${appointmentId}`,
+    };
 
-    console.log('Checkout session created:', session.id);
-    res.status(200).json({ sessionId: session.id });
+    const order = await razorpay.orders.create(options);
+    console.log('Razorpay order created:', order.id);
+
+    res.status(200).json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: process.env.RAZORPAY_KEY_ID,
+      appointmentId: appointmentId,
+    });
   } catch (error) {
-    console.error('Error creating checkout session:', error.message, error.stack);
-    res.status(500).json({ message: 'Failed to create checkout session', error: error.message });
+    console.error('Error creating Razorpay order:', error.message, error.stack);
+    res.status(500).json({ message: 'Failed to create Razorpay order', error: error.message });
   }
 };
 
 exports.handleWebhook = async (req, res) => {
   try {
-    const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const receivedSignature = req.headers['x-razorpay-signature'];
 
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
-      return res.status(400).json({ message: 'Webhook error', error: err.message });
+    const body = req.body;
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(JSON.stringify(body))
+      .digest('hex');
+
+    if (expectedSignature !== receivedSignature) {
+      console.error('Webhook signature verification failed');
+      return res.status(400).json({ message: 'Webhook signature verification failed' });
     }
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const appointmentId = session.metadata.appointmentId;
+    const event = body.event;
+    if (event === 'payment.captured') {
+      const payment = body.payload.payment.entity;
+      const appointmentId = payment.notes.appointmentId;
 
       const appointment = await Appointment.findById(appointmentId);
       if (appointment) {
         appointment.status = 'paid';
-        appointment.paymentId = session.payment_intent;
+        appointment.paymentId = payment.id;
         await appointment.save();
         console.log('Appointment marked as paid:', appointmentId);
       }

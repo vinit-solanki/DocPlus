@@ -6,13 +6,6 @@ function MyAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [paymentForm, setPaymentForm] = useState({
-    appointmentId: null,
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
-  });
-  const [paymentError, setPaymentError] = useState(null);
   const { getToken } = useAuth();
 
   const fetchAppointments = async () => {
@@ -63,22 +56,84 @@ function MyAppointments() {
     }
   };
 
-  const handlePaymentFormChange = (e) => {
-    const { name, value } = e.target;
-    setPaymentForm((prev) => ({ ...prev, [name]: value }));
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
   };
 
-  const handlePaymentSubmit = async (e, appointmentId) => {
-    e.preventDefault();
-    setPaymentError(null);
+  const handlePayNow = async (appointmentId, fees, doctorName, date, time) => {
     try {
-      console.log('Processing payment for appointment:', appointmentId, 'with data:', paymentForm);
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Mock delay
-      alert('Payment processed successfully!');
-      setPaymentForm({ appointmentId: null, cardNumber: '', expiry: '', cvv: '' });
+      const token = await getToken();
+      if (!token) {
+        setError('Authentication token is missing. Please sign in again.');
+        return;
+      }
+
+      // Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        setError('Failed to load Razorpay SDK.');
+        return;
+      }
+
+      // Create Razorpay order
+      const response = await axios.post(
+        'http://localhost:3000/api/appointments/create-order',
+        { appointmentId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const { orderId, amount, currency, key } = response.data;
+
+      // Initialize Razorpay checkout
+      const options = {
+        key,
+        amount,
+        currency,
+        name: `Appointment with ${doctorName}`,
+        description: `Date: ${new Date(date).toLocaleDateString()}, Time: ${time}`,
+        order_id: orderId,
+        handler: async function (response) {
+          try {
+            // Update appointment status on frontend
+            setAppointments((prev) =>
+              prev.map((appt) =>
+                appt._id === appointmentId ? { ...appt, status: 'paid', paymentId: response.razorpay_payment_id } : appt
+              )
+            );
+            alert('Payment successful!');
+          } catch (err) {
+            setError('Failed to update appointment after payment.');
+            console.error('Error after payment:', err);
+          }
+        },
+        prefill: {
+          name: '',
+          email: '',
+          contact: '',
+        },
+        notes: {
+          appointmentId,
+        },
+        theme: {
+          color: '#16a34a',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        setError(`Payment failed: ${response.error.description}`);
+      });
+      rzp.open();
     } catch (err) {
-      setPaymentError('Failed to process payment. Please try again.');
-      console.error('Error processing payment:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to initiate payment.';
+      setError(errorMessage);
+      console.error('Error initiating payment:', err.response?.data, err);
     }
   };
 
@@ -104,7 +159,7 @@ function MyAppointments() {
                   </p>
                   <p className="text-gray-600">Time: {appt.time}</p>
                   <p className="text-gray-600">Reason: {appt.reason || 'Not specified'}</p>
-                  <p className="text-gray-600">Fees: ${appt.fees}</p>
+                  <p className="text-gray-600">Fees: ₹{appt.fees}</p>
                   <p className="text-gray-600 capitalize">Status: {appt.status}</p>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -117,7 +172,15 @@ function MyAppointments() {
                         Cancel Appointment
                       </button>
                       <button
-                        onClick={() => setPaymentForm({ ...paymentForm, appointmentId: appt._id })}
+                        onClick={() =>
+                          handlePayNow(
+                            appt._id,
+                            appt.fees,
+                            appt.doctorId.name,
+                            appt.date,
+                            appt.time
+                          )
+                        }
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                       >
                         Pay Now
@@ -126,56 +189,6 @@ function MyAppointments() {
                   )}
                 </div>
               </div>
-              {paymentForm.appointmentId === appt._id && (
-                <form onSubmit={(e) => handlePaymentSubmit(e, appt._id)} className="mt-4 space-y-4">
-                  <h3 className="text-lg font-semibold">Payment Details</h3>
-                  {paymentError && <p className="text-red-600">{paymentError}</p>}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Card Number</label>
-                    <input
-                      type="text"
-                      name="cardNumber"
-                      value={paymentForm.cardNumber}
-                      onChange={handlePaymentFormChange}
-                      className="mt-1 block w-full border rounded-md px-3 py-2"
-                      placeholder="1234 5678 9012 3456"
-                      required
-                    />
-                  </div>
-                  <div className="flex gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Expiry</label>
-                      <input
-                        type="text"
-                        name="expiry"
-                        value={paymentForm.expiry}
-                        onChange={handlePaymentFormChange}
-                        className="mt-1 block w-full border rounded-md px-3 py-2"
-                        placeholder="MM/YY"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">CVV</label>
-                      <input
-                        type="text"
-                        name="cvv"
-                        value={paymentForm.cvv}
-                        onChange={handlePaymentFormChange}
-                        className="mt-1 block w-full border rounded-md px-3 py-2"
-                        placeholder="123"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Submit Payment
-                  </button>
-                </form>
-              )}
             </div>
           ))}
         </div>

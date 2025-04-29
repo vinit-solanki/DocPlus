@@ -7,7 +7,7 @@ const AppContextProvider = ({ children }) => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const currencySymbol = '$';
+  const currencySymbol = '₹';
 
   useEffect(() => {
     const fetchDoctors = async () => {
