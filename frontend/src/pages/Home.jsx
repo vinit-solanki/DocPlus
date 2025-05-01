@@ -15,7 +15,6 @@ export default function Home() {
             Book Appointment <br /> With Trusted Doctors
           </h1>
           <div className="flex flex-col items-start md:flex-row items-center gap-4">
-            <img src={assets.group_profiles} alt="Doctors" className="w-32 h-16 rounded-full" />
             <p className="text-lg md:text-xl">
               Browse our extensive list of trusted doctors, <br /> schedule and diagnose with ease.
             </p>
@@ -33,7 +32,7 @@ export default function Home() {
           <img
             src={assets.header_img}
             alt="Medical Illustration"
-            className="max-w-[90%] md:max-w-full h-auto rounded-xl shadow-xl shadow-2xl animate-initial-bounce"
+            className="opacity-90 max-w-[90%] md:max-w-full h-auto rounded-xl shadow-xl shadow-2xl animate-initial-bounce"
           />
         </div>
       </div>

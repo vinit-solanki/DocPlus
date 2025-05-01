@@ -12,6 +12,9 @@ import Appointment from "./pages/Appointment";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import SignUpPage from "./pages/SignUpPage";
+import FloatingChat from "./components/FloatingChat";
+import ChatbotPage from "./components/ChatBotPage";
+
 function App() {
   return (
     <div className="w-full min-h-screen flex flex-col">
@@ -20,12 +23,12 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-        <Route path="/sign-up" element={<SignUpPage />} />
+          <Route path="/sign-up" element={<SignUpPage />} />
   
-  {/* Prevent getting stuck on callback routes */}
-  <Route path="/sign-up/sso-callback?" element={<Navigate to="/" />} />
-  <Route path="/login/sso-callback?" element={<Navigate to="/" />} />
-{/* Protected Routes */}
+          {/* Prevent getting stuck on callback routes */}
+          <Route path="/sign-up/sso-callback?" element={<Navigate to="/" />} />
+          <Route path="/login/sso-callback?" element={<Navigate to="/" />} />
+          {/* Protected Routes */}
           <Route
             path="/my-appointments"
             element={
@@ -66,8 +69,10 @@ function App() {
             </>
           } />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/chatbot" element={<ChatbotPage />} />
         </Routes>
       </main>
+      <FloatingChat />
       <Footer/>
     </div>
   );
