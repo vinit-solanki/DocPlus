@@ -29,11 +29,11 @@ export default function Home() {
         </div>
 
         {/* Right Side */}
-        <div className="md:w-1/2 flex justify-center">
+        <div className="md:w-1/2 flex justify-center items-center">
           <img
             src={assets.header_img}
             alt="Medical Illustration"
-            className="max-w-[90%] md:max-w-full h-auto rounded-xl shadow-xl rounded-t-full shadow-2xl shadow-white/50"
+            className="max-w-[90%] md:max-w-full h-auto rounded-xl shadow-xl shadow-2xl animate-initial-bounce"
           />
         </div>
       </div>

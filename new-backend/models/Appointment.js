@@ -34,6 +34,11 @@ const appointmentSchema = new mongoose.Schema({
   paymentId: {
     type: String,
   },
+}, { 
+  timestamps: true  // This adds createdAt and updatedAt fields automatically
 });
+
+const currentDate = new Date();
+const twoDaysAgo = new Date(currentDate - 48 * 60 * 60 * 1000);
 
 module.exports = mongoose.model('Appointment', appointmentSchema);

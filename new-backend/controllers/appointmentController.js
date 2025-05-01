@@ -66,7 +66,27 @@ exports.getMyAppointments = async (req, res) => {
       return res.status(404).json({ message: 'Patient not found' });
     }
 
-    const appointments = await Appointment.find({ patientId: patient._id })
+    // Get current date
+    const currentDate = new Date();
+
+    // Find and delete old cancelled appointments
+    await Appointment.deleteMany({
+      patientId: patient._id,
+      status: 'cancelled',
+      updatedAt: { $lt: new Date(currentDate - 24 * 60 * 60 * 1000) } // 24 hours old
+    });
+
+    // Fetch remaining appointments
+    const appointments = await Appointment.find({ 
+      patientId: patient._id,
+      $or: [
+        { status: { $ne: 'cancelled' } },
+        { 
+          status: 'cancelled',
+          updatedAt: { $gte: new Date(currentDate - 24 * 60 * 60 * 1000) }
+        }
+      ]
+    })
       .populate('doctorId', 'name speciality image')
       .sort({ date: -1 });
 
@@ -99,7 +119,6 @@ exports.cancelAppointment = async (req, res) => {
     if (slot) {
       slot.isAvailable = true;
       await doctor.save();
-   部分
     }
 
     appointment.status = 'cancelled';
@@ -138,6 +157,9 @@ exports.createRazorpayOrder = async (req, res) => {
       amount: appointment.fees * 100, // Amount in paise
       currency: 'INR',
       receipt: `appointment_${appointmentId}`,
+      notes: {
+        appointmentId: appointmentId // Add this line to pass appointmentId in notes
+      }
     };
 
     const order = await razorpay.orders.create(options);
@@ -175,7 +197,11 @@ exports.handleWebhook = async (req, res) => {
     const event = body.event;
     if (event === 'payment.captured') {
       const payment = body.payload.payment.entity;
-      const appointmentId = payment.notes.appointmentId;
+      const orderId = payment.order_id;
+      const order = await razorpay.orders.fetch(orderId);
+      const appointmentId = order.notes.appointmentId;
+
+      console.log('Processing payment for appointment:', appointmentId);
 
       const appointment = await Appointment.findById(appointmentId);
       if (appointment) {
@@ -183,6 +209,8 @@ exports.handleWebhook = async (req, res) => {
         appointment.paymentId = payment.id;
         await appointment.save();
         console.log('Appointment marked as paid:', appointmentId);
+      } else {
+        console.error('Appointment not found:', appointmentId);
       }
     }
 

@@ -53,6 +53,15 @@ export default {
 		},
 		gridTemplateColumns:{
 			'auto': 'repeat(auto-fill, minmax(200px, 1fr))'
+		},
+		keyframes: {
+			'initial-bounce': {
+				'0%, 100%': { transform: 'translateY(0)' },
+				'50%': { transform: 'translateY(-25px)' }
+			}
+		},
+		animation: {
+			'initial-bounce': 'initial-bounce 1s ease-in-out 2'  // Will bounce twice for 1 second each
 		}
   	}
   },
