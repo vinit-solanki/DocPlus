@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "git-filter-repo": "^0.0.30"
+    "git-filter-repo": "^0.0.30",
+    "openai": "^4.96.2"
   }
 }
