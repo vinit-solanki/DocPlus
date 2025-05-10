@@ -12,17 +12,17 @@ const razorpay = new Razorpay({
 
 exports.createAppointment = async (req, res) => {
   try {
-    const { userId } = req.auth;
+    const { userId } = req.user;
     const { doctorId, date, time, reason } = req.body;
 
-    console.log('Creating appointment for clerkId:', userId, 'with data:', req.body);
+    console.log('Creating appointment for userId:', userId, 'with data:', req.body);
 
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
-    const patient = await Patient.findOne({ clerkId: userId });
+    const patient = await Patient.findOne({ user: userId });
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found. Please update your profile first.' });
     }
@@ -58,11 +58,11 @@ exports.createAppointment = async (req, res) => {
 
 exports.getMyAppointments = async (req, res) => {
   try {
-    const { userId } = req.auth;
-    console.log('Fetching appointments for clerkId:', userId);
-    const patient = await Patient.findOne({ clerkId: userId });
+    const { userId } = req.user;
+    console.log('Fetching appointments for userId:', userId);
+    const patient = await Patient.findOne({ user: userId });
     if (!patient) {
-      console.log('No patient found for clerkId:', userId);
+      console.log('No patient found for userId:', userId);
       return res.status(404).json({ message: 'Patient not found' });
     }
 
@@ -106,8 +106,8 @@ exports.cancelAppointment = async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    const { userId } = req.auth;
-    const patient = await Patient.findOne({ clerkId: userId });
+    const { userId } = req.user;
+    const patient = await Patient.findOne({ user: userId });
     if (!patient || appointment.patientId.toString() !== patient._id.toString()) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
@@ -134,17 +134,17 @@ exports.cancelAppointment = async (req, res) => {
 
 exports.createRazorpayOrder = async (req, res) => {
   try {
-    const { userId } = req.auth;
+    const { userId } = req.user;
     const { appointmentId } = req.body;
 
-    console.log('Creating Razorpay order for clerkId:', userId, 'appointmentId:', appointmentId);
+    console.log('Creating Razorpay order for userId:', userId, 'appointmentId:', appointmentId);
 
     const appointment = await Appointment.findById(appointmentId).populate('doctorId', 'name fees');
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    const patient = await Patient.findOne({ clerkId: userId });
+    const patient = await Patient.findOne({ user: userId });
     if (!patient || appointment.patientId.toString() !== patient._id.toString()) {
       return res.status(403).json({ message: 'Unauthorized' });
     }

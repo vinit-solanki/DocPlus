@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { assets } from "@/assets/assets_frontend/assets";
-import { useAuth } from "@clerk/clerk-react";
 import axios from 'axios';
 
 function Profile() {
-  const { user, isLoaded, isSignedIn, getToken } = useAuth();
   const [userData, setUserData] = useState({
     name: "User",
     image: assets.profile_image,
@@ -21,18 +19,18 @@ function Profile() {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
+    const token = localStorage.getItem('token');
+    if (token) {
       const fetchPatient = async () => {
         try {
-          const token = await getToken();
           const response = await axios.get('http://localhost:3000/api/patients', {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = response.data;
           setUserData({
-            name: data.name || user.fullName || "User",
-            image: user.imageUrl || assets.profile_image,
-            email: data.email || user.primaryEmailAddress?.emailAddress || "No Email Provided",
+            name: data.name || "User",
+            image: data.image || assets.profile_image,
+            email: data.email || "No Email Provided",
             phone: data.phone || "No Phone Number Provided",
             address: data.address || "No Address Provided",
             gender: data.gender || "",
@@ -46,13 +44,13 @@ function Profile() {
       };
       fetchPatient();
     }
-  }, [user, isLoaded, isSignedIn, getToken]);
+  }, []);
 
   const handleSave = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getToken();
+      const token = localStorage.getItem('token');
       await axios.put('http://localhost:3000/api/patients', {
         name: userData.name,
         email: userData.email,
@@ -83,7 +81,15 @@ function Profile() {
     );
   }
 
-  if (!isSignedIn) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-gray-600">Please sign in to view profile</p>

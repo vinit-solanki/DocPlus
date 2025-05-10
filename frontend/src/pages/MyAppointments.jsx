@@ -1,17 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '@clerk/clerk-react';
 
 function MyAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { getToken } = useAuth();
 
   const fetchAppointments = async () => {
     try {
-      const token = await getToken();
-      console.log('JWT Token:', token);
+      const token = localStorage.getItem('token');
       if (!token) {
         setError('Authentication token is missing. Please sign in again.');
         return;
@@ -68,7 +65,7 @@ function MyAppointments() {
 
   const handlePayNow = async (appointmentId, fees, doctorName, date, time) => {
     try {
-      const token = await getToken();
+      const token = localStorage.getItem('token');
       if (!token) {
         setError('Authentication token is missing. Please sign in again.');
         return;

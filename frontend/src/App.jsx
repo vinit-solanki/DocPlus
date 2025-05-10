@@ -1,6 +1,5 @@
 import React from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { ClerkProvider, SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { Navigate, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import MyAppointments from "./pages/MyAppointments";
 import Doctors from "./pages/Doctors";
@@ -15,6 +14,14 @@ import SignUpPage from "./pages/SignUpPage";
 import FloatingChat from "./components/FloatingChat";
 import ChatbotPage from "./components/ChatBotPage";
 
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+  return children;
+};
+
 function App() {
   return (
     <div className="w-full min-h-screen flex flex-col">
@@ -24,22 +31,12 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<SignUpPage />} />
-  
-          {/* Prevent getting stuck on callback routes */}
-          <Route path="/sign-up/sso-callback?" element={<Navigate to="/" />} />
-          <Route path="/login/sso-callback?" element={<Navigate to="/" />} />
-          {/* Protected Routes */}
           <Route
             path="/my-appointments"
             element={
-              <>
-                <SignedIn>
-                  <MyAppointments />
-                </SignedIn>
-                <SignedOut>
-                  <RedirectToSignIn />
-                </SignedOut>
-              </>
+              <PrivateRoute>
+                <MyAppointments />
+              </PrivateRoute>
             }
           />
           <Route path="/doctors" element={<Doctors />} />
@@ -48,26 +45,19 @@ function App() {
           <Route
             path="/profile"
             element={
-              <>
-                <SignedIn>
-                  <Profile />
-                </SignedIn>
-                <SignedOut>
-                  <RedirectToSignIn />
-                </SignedOut>
-              </>
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
             }
           />
-          <Route path="/appointment/:docId" element={
-            <>
-              <SignedIn>
+          <Route
+            path="/appointment/:docId"
+            element={
+              <PrivateRoute>
                 <Appointment />
-              </SignedIn>
-              <SignedOut>
-                <RedirectToSignIn />
-              </SignedOut>
-            </>
-          } />
+              </PrivateRoute>
+            }
+          />
           <Route path="/contact" element={<Contact />} />
           <Route path="/chatbot" element={<ChatbotPage />} />
         </Routes>

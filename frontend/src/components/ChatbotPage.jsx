@@ -10,7 +10,6 @@ const ChatbotPage = () => {
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -46,8 +45,8 @@ const ChatbotPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-2xl flex flex-col">
+    <div className="h-screen bg-gray-100 flex justify-center items-center p-4">
+      <div className="w-full max-w-3xl bg-white rounded-lg shadow-2xl flex flex-col">
         {/* Chat Header */}
         <div className="bg-green-600 p-4 rounded-t-lg flex items-center gap-3">
           <img src={DrRoss} alt="Dr. Ross" className="w-10 h-10 rounded-full" />

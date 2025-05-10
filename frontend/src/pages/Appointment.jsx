@@ -4,9 +4,8 @@ import { AppContext } from '@/context/AppContext';
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '@clerk/clerk-react';
 
-function Appointment() {
+const Appointment = () => {
   const { docId } = useParams();
   const { currencySymbol } = useContext(AppContext);
   const [docInfo, setDocInfo] = useState(null);
@@ -20,7 +19,6 @@ function Appointment() {
     phone: '',
     reason: '',
   });
-  const { getToken, user, isSignedIn } = useAuth();
   const navigate = useNavigate();
 
   const fetchDocInfo = async () => {
@@ -54,35 +52,42 @@ function Appointment() {
   }, [docId]);
 
   useEffect(() => {
-    if (isSignedIn && user) {
-      setPatientForm(prev => ({
-        ...prev,
-        name: user.fullName || '',
-        email: user.primaryEmailAddress?.emailAddress || '',
-      }));
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Fetch user data from your backend instead of Clerk
+      const fetchUserData = async () => {
+        try {
+          const response = await axios.get('http://localhost:3000/api/patients', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const userData = response.data;
+          setPatientForm(prev => ({
+            ...prev,
+            name: userData.name || '',
+            email: userData.email || '',
+          }));
+        } catch (err) {
+          console.error('Error fetching user data:', err);
+        }
+      };
+      fetchUserData();
     }
-  }, [user, isSignedIn]);
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setPatientForm(prev => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
   const handleBookAppointment = async (e) => {
     e.preventDefault();
-    if (!selectedSlot.time || selectedSlot.dayIndex === null || !isSignedIn) {
-      setError('Please select a time slot and sign in.');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Please sign in to book an appointment.');
+      return;
+    }
+
+    if (!selectedSlot.time || selectedSlot.dayIndex === null) {
+      setError('Please select a time slot.');
       return;
     }
 
     try {
-      const token = await getToken();
-      console.log('JWT Token:', token);
-      if (!token) {
-        setError('Authentication token is missing. Please sign in again.');
-        return;
-      }
-
       const patientResponse = await axios.put('http://localhost:3000/api/patients', {
         name: patientForm.name,
         email: patientForm.email,
@@ -109,6 +114,11 @@ function Appointment() {
       setError(errorMessage);
       console.error('Error booking appointment:', err.response?.data, err);
     }
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setPatientForm(prev => ({ ...prev, [name]: value }));
   };
 
   return (

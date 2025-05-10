@@ -1,23 +1,19 @@
-const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
+const jwt = require('jsonwebtoken');
 
-const requireAuth = ClerkExpressRequireAuth({
-  clerkSecretKey: process.env.CLERK_SECRET_KEY,
-});
+const auth = (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
 
-module.exports = {
-  requireAuth: (req, res, next) => {
-    console.log(
-      "Authenticating request with Authorization header:",
-      req.headers.authorization
-    );
-    requireAuth(req, res, (error) => {
-      if (error) {
-        console.error("Authentication error:", error.message, error.stack);
-        return res
-          .status(401)
-          .json({ message: "Unauthenticated", error: error.message });
-      }
-      next();
-    });
-  },
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
 };
+
+module.exports = auth;

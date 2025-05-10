@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 const patientController = require('../controllers/patientController');
 
-router.get('/', requireAuth, patientController.getPatient);
-router.put('/', requireAuth, patientController.updatePatient);
+router.get('/', auth, patientController.getPatient);
+router.put('/', auth, patientController.updatePatient);
 
 module.exports = router;

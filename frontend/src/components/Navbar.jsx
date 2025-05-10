@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { assets } from '../assets/assets_frontend/assets';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { UserButton, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { isSignedIn, user } = useUser();
   const [showMenu, setShowMenu] = useState(false);
+  const token = localStorage.getItem("token");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   return (
     <div className="relative w-screen flex items-center justify-between p-4 text-sm border-b border-b-gray-500">
@@ -22,45 +26,42 @@ const Navbar = () => {
         <NavLink to="/doctors">
           <li>All Doctors</li>
         </NavLink>
-        <SignedIn>
+        {token && (
           <NavLink to="/my-appointments">
             <li>My Appointments</li>
           </NavLink>
-        </SignedIn>
+        )}
         <NavLink to="/about">
           <li>About</li>
         </NavLink>
         <NavLink to="/contact">
           <li>Contact</li>
         </NavLink>
-        <SignedIn>
-          {/* <NavLink to="/profile">
-            <li>My Profile</li>
-          </NavLink> */}
-        </SignedIn>
       </ul>
 
       {/* Auth Buttons and Mobile Menu Toggle */}
       <div className="flex items-center gap-4">
         <div className="hidden md:block">
-          <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonAvatarBox: "w-10 h-10"
-                }
-              }}
-              afterSignOutUrl="/"
-            />
-          </SignedIn>
-          <SignedOut>
+          {token ? (
+            <div className="flex items-center gap-4">
+              <NavLink to="/profile">
+                <button className="text-gray-600 hover:text-gray-800">Profile</button>
+              </NavLink>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
             <button
               onClick={() => navigate("/login")}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
             >
               Sign In
             </button>
-          </SignedOut>
+          )}
         </div>
         <button 
           onClick={() => setShowMenu(!showMenu)}
@@ -85,37 +86,39 @@ const Navbar = () => {
               <NavLink to="/doctors" onClick={() => setShowMenu(false)}>
                 <li>All Doctors</li>
               </NavLink>
-              <SignedIn>
+              {token && (
                 <NavLink to="/my-appointments" onClick={() => setShowMenu(false)}>
                   <li>My Appointments</li>
                 </NavLink>
-              </SignedIn>
+              )}
               <NavLink to="/about" onClick={() => setShowMenu(false)}>
                 <li>About</li>
               </NavLink>
               <NavLink to="/contact" onClick={() => setShowMenu(false)}>
                 <li>Contact</li>
               </NavLink>
-              <SignedIn>
-                {/* <NavLink to="/profile" onClick={() => setShowMenu(false)}>
-                  <li>My Profile</li>
-                </NavLink> */}
-              </SignedIn>
             </ul>
             
             {/* Mobile Auth Buttons */}
             <div className="pt-4 border-t border-gray-200">
-              <SignedIn>
-                <UserButton
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox: "w-10 h-10"
-                    }
-                  }}
-                  afterSignOutUrl="/"
-                />
-              </SignedIn>
-              <SignedOut>
+              {token ? (
+                <div className="flex flex-col gap-2">
+                  <NavLink to="/profile" onClick={() => setShowMenu(false)}>
+                    <button className="w-full text-left text-gray-600 hover:text-gray-800">
+                      Profile
+                    </button>
+                  </NavLink>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowMenu(false);
+                    }}
+                    className="w-full bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
                 <button
                   onClick={() => {
                     navigate("/login");
@@ -125,7 +128,7 @@ const Navbar = () => {
                 >
                   Sign In
                 </button>
-              </SignedOut>
+              )}
             </div>
           </div>
         </div>

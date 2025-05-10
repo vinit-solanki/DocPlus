@@ -19,6 +19,7 @@ connectDB();
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/appointments', require('./routes/appointments'));
+app.use('/api/auth', require('./routes/auth'));
 
 // Error handling
 app.use((err, req, res, next) => {

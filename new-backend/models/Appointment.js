@@ -38,7 +38,6 @@ const appointmentSchema = new mongoose.Schema({
   timestamps: true  // This adds createdAt and updatedAt fields automatically
 });
 
-const currentDate = new Date();
-const twoDaysAgo = new Date(currentDate - 48 * 60 * 60 * 1000);
+// Removed unused variables
 
 module.exports = mongoose.model('Appointment', appointmentSchema);
