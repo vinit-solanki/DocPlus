@@ -16,6 +16,17 @@ app.use(express.json());
 // Connect to MongoDB
 connectDB();
 
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../frontend/dist'))); // Adjust path if using 'build'
+
+// API routes
+app.use('/api/patients', require('./routes/patientRoutes')); // Your patient routes
+
+// Serve React app for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html')); // Adjust path if using 'build'
+});
+
 // Routes
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/patients', require('./routes/patients'));
