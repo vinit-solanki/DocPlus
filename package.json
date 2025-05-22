@@ -1,7 +1,12 @@
 {
+  "name": "docplus",
+  "version": "1.0.0",
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd new-backend && npm run dev",
+    "dev": "concurrently \"npm run frontend\" \"npm run backend\""
+  },
   "dependencies": {
-    "@botpress/webchat": "2.3",
-    "git-filter-repo": "^0.0.30",
-    "openai": "^4.96.2"
+    "concurrently": "^8.2.2"
   }
 }
