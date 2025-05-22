@@ -1,48 +1,68 @@
-import React, { useState, useEffect } from "react";
-import { assets } from "@/assets/assets_frontend/assets";
+import React, { useState, useEffect } from 'react';
+import { assets } from '@/assets/assets_frontend/assets';
 import axios from 'axios';
 
 function Profile() {
   const [userData, setUserData] = useState({
-    name: "User",
+    name: 'User',
     image: assets.profile_image,
-    email: "No Email Provided",
-    phone: "No Phone Number Provided",
-    address: "No Address Provided",
-    gender: "",
-    dob: "",
-    bloodGroup: "",
+    email: 'No Email Provided',
+    phone: 'No Phone Number Provided',
+    address: 'No Address Provided',
+    gender: '',
+    dob: '',
+    bloodGroup: '',
   });
   const [isEdit, setIsEdit] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token'); // Fixed key (adjust if different)
+    console.log('Token found:', token ? 'Yes' : 'No'); // Debug log
     if (token) {
+      setIsAuthenticated(true);
       const fetchPatient = async () => {
         try {
+          setIsLoading(true);
           const response = await axios.get('http://localhost:3000/api/patients', {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
+          console.log('API Response:', response.data); // Debug log
           const data = response.data;
           setUserData({
-            name: data.name || "User",
+            name: data.name || 'User',
             image: data.image || assets.profile_image,
-            email: data.email || "No Email Provided",
-            phone: data.phone || "No Phone Number Provided",
-            address: data.address || "No Address Provided",
-            gender: data.gender || "",
-            dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : "",
-            bloodGroup: data.bloodGroup || "",
+            email: data.email || 'No Email Provided',
+            phone: data.phone || 'No Phone Number Provided',
+            address: data.address || 'No Address Provided',
+            gender: data.gender || '',
+            dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : '',
+            bloodGroup: data.bloodGroup || '',
           });
         } catch (err) {
-          setError(err.response?.data?.message || 'Failed to load profile data.');
-          console.error('Error fetching patient:', err);
+          console.error('Fetch Error:', err.response || err.message); // Debug log
+          if (err.response) {
+            if (err.response.status === 401) {
+              setError('Unauthorized. Please sign in again.');
+            } else if (err.response.status === 404) {
+              setError('No profile found. Please complete your profile.');
+            } else {
+              setError('Failed to load profile data.');
+            }
+          } else {
+            setError('Network error. Please check your connection.');
+          }
+        } finally {
+          setIsLoading(false);
         }
       };
       fetchPatient();
+    } else {
+      setError('Please sign in to view your profile.');
+      setIsLoading(false);
     }
   }, []);
 
@@ -51,29 +71,53 @@ function Profile() {
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:3000/api/patients', {
-        name: userData.name,
-        email: userData.email,
-        phone: userData.phone,
-        address: userData.address,
-        gender: userData.gender,
-        dob: userData.dob,
-        bloodGroup: userData.bloodGroup,
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      console.log('Saving profile with data:', userData);
+      let response;
+      try {
+        response = await axios.put(
+          'http://localhost:3000/api/patients',
+          { ...userData },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (err) {
+        if (err.response?.status === 404) {
+          // Create new patient if none exists
+          response = await axios.post(
+            'http://localhost:3000/api/patients',
+            { ...userData },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } else {
+          throw err;
+        }
+      }
+      console.log('Save Response:', response.data);
+      setUserData({
+        name: response.data.name || 'User',
+        image: response.data.image || assets.profile_image,
+        email: response.data.email || 'No Email Provided',
+        phone: response.data.phone || 'No Phone Number Provided',
+        address: response.data.address || 'No Address Provided',
+        gender: response.data.gender || '',
+        dob: response.data.dob ? new Date(response.data.dob).toISOString().split('T')[0] : '',
+        bloodGroup: response.data.bloodGroup || '',
       });
       setIsEdit(false);
       setSuccessMessage('Profile updated successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
-      console.error('Error updating profile:', err);
+      console.error('Save Error:', err.response || err.message);
+      setError(
+        err.response?.status === 401
+          ? 'Unauthorized. Please sign in again.'
+          : 'Failed to update profile.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-gray-600">Loading...</p>
@@ -81,18 +125,10 @@ function Profile() {
     );
   }
 
-  if (loading) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-gray-600">Please sign in to view profile</p>
+        <p className="text-xl text-red-600">{error}</p>
       </div>
     );
   }
@@ -101,9 +137,9 @@ function Profile() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center gap-4 mb-8">
-          <img 
-            src={userData.image} 
-            alt={userData.name} 
+          <img
+            src={userData.image}
+            alt={userData.name}
             className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
           />
           <div>
@@ -111,9 +147,7 @@ function Profile() {
               <input
                 type="text"
                 value={userData.name}
-                onChange={(e) =>
-                  setUserData((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))}
                 className="border rounded-md px-3 py-2 w-full"
               />
             ) : (
@@ -122,6 +156,8 @@ function Profile() {
             <p className="text-gray-600">{userData.email}</p>
           </div>
         </div>
+        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+        {successMessage && <p className="text-green-600 text-sm mb-4">{successMessage}</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Phone Number</label>
@@ -129,9 +165,7 @@ function Profile() {
               <input
                 type="tel"
                 value={userData.phone}
-                onChange={(e) =>
-                  setUserData((prev) => ({ ...prev, phone: e.target.value }))
-                }
+                onChange={(e) => setUserData((prev) => ({ ...prev, phone: e.target.value }))}
                 className="border rounded-md px-3 py-2 w-full"
               />
             ) : (
@@ -144,9 +178,7 @@ function Profile() {
               <input
                 type="text"
                 value={userData.address}
-                onChange={(e) =>
-                  setUserData((prev) => ({ ...prev, address: e.target.value }))
-                }
+                onChange={(e) => setUserData((prev) => ({ ...prev, address: e.target.value }))}
                 className="border rounded-md px-3 py-2 w-full"
               />
             ) : (
@@ -158,9 +190,7 @@ function Profile() {
             {isEdit ? (
               <select
                 value={userData.gender}
-                onChange={(e) =>
-                  setUserData((prev) => ({ ...prev, gender: e.target.value }))
-                }
+                onChange={(e) => setUserData((prev) => ({ ...prev, gender: e.target.value }))}
                 className="border rounded-md px-3 py-2 w-full"
               >
                 <option value="">Select Gender</option>
@@ -169,7 +199,7 @@ function Profile() {
                 <option value="other">Other</option>
               </select>
             ) : (
-              <p className="text-gray-800 capitalize">{userData.gender || "Not Specified"}</p>
+              <p className="text-gray-800 capitalize">{userData.gender || 'Not Specified'}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -178,13 +208,11 @@ function Profile() {
               <input
                 type="date"
                 value={userData.dob}
-                onChange={(e) =>
-                  setUserData((prev) => ({ ...prev, dob: e.target.value }))
-                }
+                onChange={(e) => setUserData((prev) => ({ ...prev, dob: e.target.value }))}
                 className="border rounded-md px-3 py-2 w-full"
               />
             ) : (
-              <p className="text-gray-800">{userData.dob || "Not Provided"}</p>
+              <p className="text-gray-800">{userData.dob || 'Not Provided'}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -192,9 +220,7 @@ function Profile() {
             {isEdit ? (
               <select
                 value={userData.bloodGroup}
-                onChange={(e) =>
-                  setUserData((prev) => ({ ...prev, bloodGroup: e.target.value }))
-                }
+                onChange={(e) => setUserData((prev) => ({ ...prev, bloodGroup: e.target.value }))}
                 className="border rounded-md px-3 py-2 w-full"
               >
                 <option value="">Select Blood Group</option>
@@ -208,33 +234,35 @@ function Profile() {
                 <option value="O-">O-</option>
               </select>
             ) : (
-              <p className="text-gray-800">{userData.bloodGroup || "Not Provided"}</p>
+              <p className="text-gray-800">{userData.bloodGroup || 'Not Provided'}</p>
             )}
           </div>
         </div>
-        <div className="mt-8 flex flex-col gap-2">
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          {successMessage && (
-            <p className="text-green-600 text-sm">{successMessage}</p>
-          )}
-          <div className="flex justify-end">
-            {isEdit ? (
-              <button 
+        <div className="mt-8 flex justify-end gap-4">
+          {isEdit ? (
+            <>
+              <button
+                onClick={() => setIsEdit(false)}
+                className="bg-gray-400 text-white px-6 py-2 rounded-md hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
                 onClick={handleSave}
                 disabled={isLoading}
                 className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:bg-green-400"
               >
                 {isLoading ? 'Saving...' : 'Save Details'}
               </button>
-            ) : (
-              <button 
-                onClick={() => setIsEdit(true)}
-                className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition-colors"
-              >
-                Edit Profile
-              </button>
-            )}
-          </div>
+            </>
+          ) : (
+            <button
+              onClick={() => setIsEdit(true)}
+              className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition-colors"
+            >
+              Edit Profile
+            </button>
+          )}
         </div>
       </div>
     </div>

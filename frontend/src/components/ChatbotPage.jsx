@@ -1,53 +1,96 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import DrRoss from '../assets/assets_frontend/doctor-ross.png';
 
 const ChatbotPage = () => {
-  const [messages, setMessages] = useState([
-    { sender: 'bot', text: 'Hello! I’m Dr. Ross, your AI Health Assistant. Ask me any healthcare-related question.' }
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-  };
+  const chatContainerRef = useRef(null);
+  const [error, setError] = useState(null);
+  const [useIframe, setUseIframe] = useState(true); // Default to iframe for stability
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSendMessage = async () => {
-    if (!input.trim()) return;
-
-    const userMessage = { sender: 'user', text: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('http://localhost:3001/api/openai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: input })
-      });
-
-      const data = await response.json();
-      const botResponse = data.response || 'Sorry, I could not respond at this time.';
-      setMessages((prev) => [...prev, { sender: 'bot', text: botResponse }]);
-    } catch (error) {
-      console.error('Error:', error);
-      setMessages((prev) => [...prev, { sender: 'bot', text: 'An error occurred. Please try again later.' }]);
-    } finally {
-      setIsLoading(false);
+    if (!chatContainerRef.current) {
+      console.warn('chatContainerRef is not attached to a DOM element');
+      setError('Chat initialization failed. Please try again.');
+      return;
     }
-  };
+
+    // Only attempt script-based loading if useIframe is false
+    if (!useIframe) {
+      const chatContainer = document.createElement('div');
+      chatContainer.id = 'bp-web-widget';
+      chatContainerRef.current.appendChild(chatContainer);
+
+      const loadBotpress = (retryCount = 0, maxRetries = 2) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.botpress.cloud/webchat/v2.4/inject.js';
+        script.async = true;
+        document.body.appendChild(script);
+
+        script.onload = () => {
+          if (window.botpressWebChat) {
+            window.botpressWebChat.init({
+              configUrl: 'https://files.bpcontent.cloud/2025/05/22/13/20250522134658-7JW1YNXG.json',
+              hostUrl: 'https://cdn.botpress.cloud/webchat/v2.4',
+              botName: 'Dr. Ross',
+              avatarUrl: DrRoss,
+              composerPlaceholder: 'Chat with Dr. Ross',
+              showConversationsButton: false,
+              enableReset: true,
+              styles: {
+                button: { backgroundColor: '#16a34a' },
+                header: { backgroundColor: '#16a34a', color: '#ffffff' },
+              },
+            });
+          } else {
+            console.error(`Botpress WebChat failed to load (attempt ${retryCount + 1})`);
+            if (retryCount < maxRetries) {
+              console.log('Retrying Botpress script load...');
+              loadBotpress(retryCount + 1, maxRetries);
+            } else {
+              setError('Failed to load Dr. Ross chatbot. Using fallback mode.');
+              setUseIframe(true);
+            }
+          }
+        };
+
+        script.onerror = () => {
+          console.error(`Failed to load Botpress WebChat script (attempt ${retryCount + 1})`);
+          if (retryCount < maxRetries) {
+            console.log('Retrying Botpress script load...');
+            loadBotpress(retryCount + 1, maxRetries);
+          } else {
+            setError('Failed to load Dr. Ross chatbot. Using fallback mode.');
+            setUseIframe(true);
+          }
+        };
+      };
+
+      loadBotpress();
+    }
+
+    // Cleanup
+    return () => {
+      if (!useIframe) {
+        const chatContainer = document.getElementById('bp-web-widget');
+        if (chatContainer && chatContainerRef.current && chatContainer.parentNode === chatContainerRef.current) {
+          chatContainerRef.current.removeChild(chatContainer);
+        }
+        const scripts = document.querySelectorAll('script[src*="botpress.cloud/webchat"]');
+        scripts.forEach((script) => {
+          if (script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+        });
+        if (window.botpressWebChat && window.botpressWebChat.destroy) {
+          window.botpressWebChat.destroy();
+        }
+      }
+    };
+  }, [useIframe]);
 
   return (
-    <div className="h-screen bg-gray-100 flex justify-center items-center p-4">
-      <div className="w-full max-w-3xl bg-white rounded-lg shadow-2xl flex flex-col">
-        {/* Chat Header */}
+    <div className="h-screen w-screen bg-gray-100 flex justify-center items-center p-4">
+      <div className="w-full h-full bg-white rounded-lg shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
         <div className="bg-green-600 p-4 rounded-t-lg flex items-center gap-3">
           <img src={DrRoss} alt="Dr. Ross" className="w-10 h-10 rounded-full" />
           <div className="text-white">
@@ -56,56 +99,38 @@ const ChatbotPage = () => {
           </div>
         </div>
 
-        {/* Chat Body */}
-        <div className="flex-1 p-4 bg-gray-50 overflow-y-auto max-h-[500px]">
-          {messages.map((msg, index) => (
+        {/* Chat Container */}
+        <div className="flex-1 bg-gray-50" ref={chatContainerRef}>
+          {error ? (
+            <div className="h-full flex items-center justify-center text-gray-600">
+              <p>{error}</p>
+            </div>
+          ) : useIframe ? (
+            <iframe
+              title="Dr. Ross Chat"
+              src="https://cdn.botpress.cloud/webchat/v2.4/shareable.html?configUrl=https://files.bpcontent.cloud/2025/05/22/13/20250522134658-7JW1YNXG.json"
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                overflow: 'hidden',
+              }}
+            />
+          ) : (
             <div
-              key={index}
-              className={`mb-4 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[70%] p-3 rounded-lg ${
-                  msg.sender === 'user' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-800'
-                }`}
-              >
-                {msg.text}
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start mb-4">
-              <div className="bg-gray-200 text-gray-800 p-3 rounded-lg">
-                Thinking...
-              </div>
-            </div>
+              style={{
+                width: '100%',
+                height: '500px',
+                border: 'none',
+                overflow: 'hidden',
+              }}
+            />
           )}
-          <div ref={messagesEndRef} />
         </div>
 
-        {/* Chat Input */}
-        <div className="p-4 border-t bg-white">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Ask your health questions..."
-              className="flex-1 px-4 py-2 rounded-lg border-2 border-green-600/30 
-                bg-white text-gray-800 placeholder-gray-500
-                focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/50
-                transition-all duration-300"
-            />
-            <button
-              onClick={handleSendMessage}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300"
-            >
-              Send
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 text-center mt-2">
-            Dr. Ross provides general information, not medical diagnoses. Consult a healthcare professional for advice.
-          </p>
+        {/* Disclaimer */}
+        <div className="p-4 border-t bg-white text-center text-xs text-gray-500">
+          Dr. Ross provides general information and is not a substitute for professional medical advice.
         </div>
       </div>
     </div>

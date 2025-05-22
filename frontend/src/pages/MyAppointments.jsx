@@ -32,7 +32,7 @@ function MyAppointments() {
 
   const handleCancel = async (appointmentId) => {
     try {
-      const token = await getToken();
+      const token = localStorage.getItem('token');
       console.log('JWT Token for cancel:', token);
       if (!token) {
         setError('Authentication token is missing. Please sign in again.');
