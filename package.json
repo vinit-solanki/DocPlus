@@ -2,6 +2,7 @@
   "name": "docplus",
   "version": "1.0.0",
   "scripts": {
+    "build": "cd frontend && npm run build",
     "frontend": "cd frontend && npm run dev",
     "backend": "cd new-backend && npm run dev",
     "dev": "concurrently \"npm run frontend\" \"npm run backend\""
