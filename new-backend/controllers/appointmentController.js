@@ -1,7 +1,8 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
-require('dotenv').config();
+const dotenv = require('dotenv');
+dotenv.config();
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
