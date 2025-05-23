@@ -23,7 +23,7 @@ const Appointment = () => {
 
   const fetchDocInfo = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/doctors/${docId}`);
+      const response = await axios.get(`${import.meta.env.BASE_URL}/api/doctors/${docId}`);
       const doctor = response.data;
       setDocInfo(doctor);
       const slots = doctor.availableSlots.reduce((acc, slot) => {
@@ -57,7 +57,7 @@ const Appointment = () => {
       // Fetch user data from your backend instead of Clerk
       const fetchUserData = async () => {
         try {
-          const response = await axios.get('http://localhost:3000/api/patients', {
+          const response = await axios.get(`${import.meta.env.BASE_URL}/api/patients`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const userData = response.data;
@@ -88,7 +88,7 @@ const Appointment = () => {
     }
 
     try {
-      const patientResponse = await axios.put('http://localhost:3000/api/patients', {
+      const patientResponse = await axios.put(`${import.meta.env.BASE_URL}/api/patients`, {
         name: patientForm.name,
         email: patientForm.email,
         phone: patientForm.phone,
@@ -98,7 +98,7 @@ const Appointment = () => {
 
       console.log('Patient saved:', patientResponse.data);
 
-      const appointmentResponse = await axios.post('http://localhost:3000/api/appointments', {
+      const appointmentResponse = await axios.post(`${import.meta.env.BASE_URL}/api/appointments`, {
         doctorId: docId,
         date: docSlots[selectedSlot.dayIndex].date,
         time: selectedSlot.time,
