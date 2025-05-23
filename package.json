@@ -1,15 +1,14 @@
 {
   "name": "docplus",
   "version": "1.0.0",
+  "main": "server.js",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build && cd ../new-backend && npm install",
-    "start": "cd new-backend && npm start",
-    "frontend": "cd frontend && npm run dev",
-    "backend": "cd new-backend && npm run dev",
-    "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
-    "install-all": "npm install && cd frontend && npm install && cd ../new-backend && npm install"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm i --prefix frontend && npm i --prefix new-backend && npm run build --prefix frontend",
+    "start": "node new-backend/server.js"
   },
-  "dependencies": {
-    "concurrently": "^8.2.2"
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
