@@ -5,8 +5,30 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm i --prefix frontend && npm i --prefix new-backend && npm run build --prefix frontend",
-    "start": "node new-backend/server.js"
+    "start": "node new-backend/server.js",
+    "start-frontend": "npm run dev --prefix frontend",
+    "build-frontend": "npm run build --prefix frontend"
   },
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://docplus-backend-ruby.vercel.app/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html",
+      "status": 200
+    }
+  ],
   "keywords": [],
   "author": "",
   "license": "ISC",
