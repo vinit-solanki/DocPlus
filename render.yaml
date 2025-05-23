@@ -1,25 +1,17 @@
 services:
   - type: web
-    name: docplus-backend
-    env: node
-    buildCommand: cd new-backend && npm install
-    startCommand: cd new-backend && node server.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
-
-  - type: web
-    name: docplus-frontend
+    name: docplus
     env: node
     buildCommand: |
+      npm install && 
       cd frontend && 
       npm install && 
-      npm run build
-    startCommand: cd frontend && npm run preview
+      npm run build &&
+      cd ../new-backend && 
+      npm install
+    startCommand: cd new-backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 4173
+        value: 10000
