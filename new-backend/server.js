@@ -83,7 +83,9 @@ app.use((err, req, res, next) => {
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -3,7 +3,7 @@ services:
     name: docplus-backend
     env: node
     buildCommand: cd new-backend && npm install
-    startCommand: cd new-backend && npm start
+    startCommand: cd new-backend && node server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,8 +13,13 @@ services:
   - type: web
     name: docplus-frontend
     env: node
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: |
+      cd frontend && 
+      npm install && 
+      npm run build
     startCommand: cd frontend && npm run preview
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 4173
