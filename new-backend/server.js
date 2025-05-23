@@ -75,16 +75,23 @@ app.post('/api/openai', async (req, res) => {
     }
 });
 
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Catch-all handler: send back React's index.html file for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: 'Something went wrong!', error: err.message });
-});
-
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -2,12 +2,12 @@
   "name": "docplus",
   "version": "1.0.0",
   "scripts": {
-    "install-all": "npm install && cd frontend && npm install && cd ../new-backend && npm install",
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd frontend && npm install && npm run build && cd ../new-backend && npm install",
+    "start": "cd new-backend && npm start",
     "frontend": "cd frontend && npm run dev",
     "backend": "cd new-backend && npm run dev",
     "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
-    "start": "cd new-backend && npm start"
+    "install-all": "npm install && cd frontend && npm install && cd ../new-backend && npm install"
   },
   "dependencies": {
     "concurrently": "^8.2.2"
