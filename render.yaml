@@ -3,11 +3,11 @@ services:
     name: docplus
     env: node
     buildCommand: |
-      npm install && 
-      cd frontend && 
-      npm install && 
-      npm run build &&
-      cd ../new-backend && 
+      npm install
+      cd frontend
+      npm install
+      npm run build
+      cd ../new-backend
       npm install
     startCommand: cd new-backend && npm start
     envVars:
@@ -15,3 +15,5 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: OPENAI_API_KEY
+        sync: false
