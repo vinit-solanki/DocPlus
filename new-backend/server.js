@@ -82,7 +82,10 @@ app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
-
+app.use((req, res, next) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    next();
+});
 // Catch-all handler: send back React's index.html file for client-side routing
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
