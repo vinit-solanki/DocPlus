@@ -12,7 +12,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import SignUpPage from "./pages/SignUpPage";
 import FloatingChat from "./components/FloatingChat";
-import ChatbotPage from "./components/ChatBotPage";
+import ChatbotPage from "./components/ChatbotPage";
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem("token");
