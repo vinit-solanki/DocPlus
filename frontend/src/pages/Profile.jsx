@@ -27,7 +27,7 @@ function Profile() {
       const fetchPatient = async () => {
         try {
           setIsLoading(true);
-          const response = await axios.get(`${import.meta.env.BASE_URL}/api/patients`, {
+          const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/patients`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           console.log('API Response:', response.data); // Debug log
@@ -75,7 +75,7 @@ function Profile() {
       let response;
       try {
         response = await axios.put(
-          `${import.meta.env.BASE_URL}/api/patients`,
+          `https://docplus-backend-ruby.vercel.app/api/patients`,
           { ...userData },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -83,7 +83,7 @@ function Profile() {
         if (err.response?.status === 404) {
           // Create new patient if none exists
           response = await axios.post(
-            `${import.meta.env.BASE_URL}/api/patients`,
+            `https://docplus-backend-ruby.vercel.app/api/patients`,
             { ...userData },
             { headers: { Authorization: `Bearer ${token}` } }
           );
