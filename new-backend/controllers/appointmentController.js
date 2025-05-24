@@ -221,3 +221,35 @@ exports.handleWebhook = async (req, res) => {
     res.status(500).json({ message: 'Webhook error', error: error.message });
   }
 };
+exports.verifyPayment = async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, appointmentId } = req.body;
+    const { userId } = req.user;
+
+    // Verify payment signature
+    const generatedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({ message: 'Invalid payment signature' });
+    }
+
+    // Update appointment status
+    const appointment = await Appointment.findOneAndUpdate(
+      { _id: appointmentId, patientId: req.user.userId },
+      { status: 'paid', paymentId: razorpay_payment_id },
+      { new: true }
+    );
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    res.json({ message: 'Payment verified', appointment });
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({ message: 'Payment verification failed', error: error.message });
+  }
+};

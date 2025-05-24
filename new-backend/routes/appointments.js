@@ -8,5 +8,6 @@ router.get('/my-appointments', auth, appointmentController.getMyAppointments);
 router.put('/cancel/:id', auth, appointmentController.cancelAppointment);
 router.post('/create-order', auth, appointmentController.createRazorpayOrder);
 router.post('/webhook', express.raw({ type: 'application/json' }), appointmentController.handleWebhook);
+router.post('/verify-payment', auth, appointmentController.verifyPayment);
 
 module.exports = router;
