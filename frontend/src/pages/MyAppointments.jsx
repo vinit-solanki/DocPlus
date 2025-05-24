@@ -15,7 +15,7 @@ function MyAppointments() {
         setError("Authentication token is missing. Please sign in again.")
         return
       }
-      const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/appointments/my-appointments`, {
+      const response = await axios.get(`http://localhost:3000/api/appointments/my-appointments`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setAppointments(response.data)
@@ -40,7 +40,7 @@ function MyAppointments() {
         return
       }
       await axios.put(
-        `https://docplus-backend-ruby.vercel.app/api/appointments/cancel/${appointmentId}`,
+        `http://localhost:3000/api/appointments/cancel/${appointmentId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -83,7 +83,7 @@ function MyAppointments() {
 
       // Create Razorpay order
       const response = await axios.post(
-        `https://docplus-backend-ruby.vercel.app/api/appointments/create-order`,
+        `http://localhost:3000/api/appointments/create-order`,
         { appointmentId },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -102,7 +102,7 @@ function MyAppointments() {
           try {
             // Verify payment with backend
             await axios.post(
-              `https://docplus-backend-ruby.vercel.app/api/appointments/verify-payment`,
+              `http://localhost:3000/api/appointments/verify-payment`,
               {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,

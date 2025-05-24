@@ -56,7 +56,7 @@ function SignUpPage() {
     }
 
     try {
-      const response = await axios.post(`https://docplus-backend-ruby.vercel.app/api/auth/register`, {
+      const response = await axios.post(`http://localhost:3000/api/auth/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
