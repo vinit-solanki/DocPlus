@@ -12,7 +12,7 @@ const AppContextProvider = ({ children }) => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/doctors`);
+        const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/doctors`);
         setDoctors(response.data);
       } catch (err) {
         setError('Failed to load doctors. Please try again later.');
