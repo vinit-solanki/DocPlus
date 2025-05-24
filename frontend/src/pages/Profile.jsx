@@ -57,7 +57,7 @@ function Profile() {
       setIsLoading(true)
       setError(null)
 
-      const userResponse = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+      const userResponse = await axios.get(`https://docplus-backend-ruby.vercel.app/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -74,7 +74,7 @@ function Profile() {
 
       if (!user.profile || !user.profile.phone) {
         try {
-          const patientResponse = await axios.get(`${API_BASE_URL}/api/patients/me`, {
+          const patientResponse = await axios.get(`https://docplus-backend-ruby.vercel.app/api/patients/me`, {
             headers: { Authorization: `Bearer ${token}` },
           })
           patientData = {
@@ -151,7 +151,7 @@ function Profile() {
       }
 
       console.log("Saving profile with data:", userData)
-      const response = await axios.post(`${API_BASE_URL}/api/patients`, userData, {
+      const response = await axios.post(`https://docplus-backend-ruby.vercel.app/api/patients`, userData, {
         headers: { Authorization: `Bearer ${token}` },
       })
       console.log("Profile save response:", response.data)
