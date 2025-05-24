@@ -20,7 +20,7 @@ function Profile() {
   const [successMessage, setSuccessMessage] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const navigate = useNavigate()
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `https://docplus-backend-ruby.vercel.app`
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://localhost:3000`
 
   useEffect(() => {
     const token = localStorage.getItem("token")

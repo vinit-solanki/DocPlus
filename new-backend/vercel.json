@@ -22,13 +22,13 @@
     "env": {
         "NODE_ENV": "production",
         "PORT": "3000",
-        "MONGODB_URI": "mongodb+srv://2022vinitsolanki:vinit%40docplus@cluster0.2k3gnky.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+        "MONGO_URI": "mongodb+srv://2022vinitsolanki:vinit%40docplus@cluster0.2k3gnky.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
         "RAZORPAY_KEY_ID":"rzp_test_CZhPPHdMTflzdH", 
         "RAZORPAY_KEY_SECRET":"TMvBQ5yiueMrKHoT5bIblRFo", 
         "RAZORPAY_WEBHOOK_SECRET":"your_webhook_secret",
         "VITE_ALLOWED_DOMAINS":"gmail.com,ves.ac.in",
         "VITE_APP_URL":"http://localhost:5173",
         "JWT_SECRET":"your_secret_key",
-        "VITE_BACKEND_URL" : "https://docplus-backend-ruby.vercel.app/"
+        "VITE_BACKEND_URL" : "http://localhost:3000/"
     }
 }
