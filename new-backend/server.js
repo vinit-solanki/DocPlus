@@ -11,7 +11,7 @@ const app = express()
 // Enhanced CORS configuration
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://docplus-backend-ruby.vercel.app", "http://127.0.0.1:5173", "https://docplus-frontend.vercel.app"
+    origin: ["http://localhost:5173", "https//localhost:3000", "http://127.0.0.1:5173", "https://docplus-frontend.vercel.app"
 ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

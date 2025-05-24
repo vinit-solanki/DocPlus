@@ -26,10 +26,19 @@ const Appointment = () => {
 
   const fetchDocInfo = async () => {
     try {
-      const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/doctors/${docId}`)
+      const response = await axios.get(`http://localhost:3000/api/doctors/${docId}`)
       const doctor = response.data
+      console.log("Doctor API Response:", doctor)
+      
+      // Validate doctor and availableSlots
+      if (!doctor || !doctor._id) {
+        throw new Error("Doctor not found")
+      }
+      
       setDocInfo(doctor)
-      const slots = doctor.availableSlots.reduce((acc, slot) => {
+      // Ensure availableSlots is an array
+      const slots = Array.isArray(doctor.availableSlots) ? doctor.availableSlots : []
+      const formattedSlots = slots.reduce((acc, slot) => {
         const date = new Date(slot.date).toISOString().split("T")[0]
         const day = new Date(slot.date).toLocaleString("en-US", { weekday: "long" })
         let daySlot = acc.find((s) => s.date === date)
@@ -40,7 +49,7 @@ const Appointment = () => {
         daySlot.slots.push({ time: slot.time, isAvailable: slot.isAvailable })
         return acc
       }, [])
-      setDocSlots(slots)
+      setDocSlots(formattedSlots)
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
@@ -48,6 +57,8 @@ const Appointment = () => {
         "Failed to load doctor information. Please check if the backend server is running."
       setError(errorMessage)
       console.error("Error fetching doctor:", err.response?.data, err)
+      setDocInfo(null)
+      setDocSlots([]) // Ensure empty array on error
     } finally {
       setLoading(false)
     }
@@ -60,10 +71,9 @@ const Appointment = () => {
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (token) {
-      // Try to fetch existing patient data
       const fetchUserData = async () => {
         try {
-          const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/patients/me`, {
+          const response = await axios.get(`http://localhost:3000/api/patients/me`, {
             headers: { Authorization: `Bearer ${token}` },
           })
           const userData = response.data
@@ -74,7 +84,6 @@ const Appointment = () => {
             phone: userData.phone || "",
           }))
         } catch (err) {
-          // If no patient profile exists, get user data from localStorage
           const user = JSON.parse(localStorage.getItem("user") || "{}")
           setPatientForm((prev) => ({
             ...prev,
@@ -101,7 +110,6 @@ const Appointment = () => {
       return
     }
 
-    // Validate form data
     if (!patientForm.name || !patientForm.email) {
       setError("Name and email are required.")
       return
@@ -111,9 +119,8 @@ const Appointment = () => {
     setError(null)
 
     try {
-      // First, ensure patient profile exists/is updated
       await axios.post(
-        `https://docplus-backend-ruby.vercel.app/api/patients`,
+        `http://localhost:3000/api/patients`,
         {
           name: patientForm.name,
           email: patientForm.email,
@@ -126,9 +133,8 @@ const Appointment = () => {
 
       console.log("Patient profile saved/updated")
 
-      // Then book the appointment
       const appointmentResponse = await axios.post(
-        `https://docplus-backend-ruby.vercel.app/api/appointments`,
+        `http://localhost:3000/api/appointments`,
         {
           doctorId: docId,
           date: docSlots[selectedSlot.dayIndex].date,
@@ -194,11 +200,7 @@ const Appointment = () => {
                 <p className="text-gray-600 mt-2 leading-relaxed">{docInfo.about}</p>
               </div>
               <p>
-                Appointment Fees:{" "}
-                <span>
-                  {currencySymbol}
-                  {docInfo.fees}
-                </span>
+                Appointment Fees: <span>{currencySymbol}{docInfo.fees}</span>
               </p>
             </div>
           </div>
@@ -255,43 +257,47 @@ const Appointment = () => {
               <div className="mt-8">
                 <h2 className="text-xl font-semibold mb-4">Available Slots</h2>
                 <div className="flex gap-4 overflow-x-auto pb-4">
-                  {docSlots.map((day, dayIndex) => (
-                    <div
-                      key={dayIndex}
-                      className={`flex-shrink-0 w-64 bg-white rounded-lg shadow-md p-4 border-2 ${
-                        selectedSlot.dayIndex === dayIndex ? "border-green-600" : "border-gray-200"
-                      }`}
-                    >
-                      <div className="text-sm font-semibold text-gray-600 mb-3">
-                        <p>{day.day}</p>
-                        <p>{new Date(day.date).toLocaleDateString()}</p>
-                        <hr className="mt-2" />
+                  {docSlots.length === 0 ? (
+                    <p className="text-gray-600">No available slots</p>
+                  ) : (
+                    docSlots.map((day, dayIndex) => (
+                      <div
+                        key={dayIndex}
+                        className={`flex-shrink-0 w-64 bg-white rounded-lg shadow-md p-4 border-2 ${
+                          selectedSlot.dayIndex === dayIndex ? "border-green-600" : "border-gray-200"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold text-gray-600 mb-3">
+                          <p>{day.day}</p>
+                          <p>{new Date(day.date).toLocaleDateString()}</p>
+                          <hr className="mt-2" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {day.slots.map((slot, slotIndex) => (
+                            <button
+                              key={slotIndex}
+                              type="button"
+                              onClick={() => {
+                                if (slot.isAvailable && !bookingLoading) {
+                                  setSelectedSlot({ dayIndex, time: slot.time })
+                                }
+                              }}
+                              className={`text-xs p-2 rounded-md transition-colors ${
+                                slot.isAvailable
+                                  ? selectedSlot.dayIndex === dayIndex && selectedSlot.time === slot.time
+                                    ? "bg-green-600 text-white"
+                                    : "bg-gray-100 hover:bg-gray-200"
+                                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              }`}
+                              disabled={!slot.isAvailable || bookingLoading}
+                            >
+                              {slot.time}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {day.slots.map((slot, slotIndex) => (
-                          <button
-                            key={slotIndex}
-                            type="button"
-                            onClick={() => {
-                              if (slot.isAvailable && !bookingLoading) {
-                                setSelectedSlot({ dayIndex, time: slot.time })
-                              }
-                            }}
-                            className={`text-xs p-2 rounded-md transition-colors ${
-                              slot.isAvailable
-                                ? selectedSlot.dayIndex === dayIndex && selectedSlot.time === slot.time
-                                  ? "bg-green-600 text-white"
-                                  : "bg-gray-100 hover:bg-gray-200"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            }`}
-                            disabled={!slot.isAvailable || bookingLoading}
-                          >
-                            {slot.time}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
               <button
@@ -305,9 +311,7 @@ const Appointment = () => {
               >
                 {bookingLoading
                   ? "Booking..."
-                  : selectedSlot.time
-                    ? `Book for ${selectedSlot.time}`
-                    : "Select a Time Slot"}
+                  : selectedSlot.time ? `Book for ${selectedSlot.time}` : "Select a Time Slot"}
               </button>
             </form>
           </div>

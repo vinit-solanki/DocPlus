@@ -20,7 +20,7 @@ function Profile() {
   const [successMessage, setSuccessMessage] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const navigate = useNavigate()
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://docplus-backend-ruby.vercel.app"
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -31,7 +31,6 @@ function Profile() {
       return
     }
 
-    // Validate token
     try {
       const decoded = jwtDecode(token)
       if (decoded.exp * 1000 < Date.now()) {
@@ -58,7 +57,6 @@ function Profile() {
       setIsLoading(true)
       setError(null)
 
-      // First, try to get user data from /auth/me
       const userResponse = await axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -74,7 +72,6 @@ function Profile() {
         bloodGroup: user.profile?.bloodGroup || "",
       }
 
-      // If profile data is incomplete, try /patients/me
       if (!user.profile || !user.profile.phone) {
         try {
           const patientResponse = await axios.get(`${API_BASE_URL}/api/patients/me`, {
@@ -92,7 +89,6 @@ function Profile() {
           }
         } catch (patientErr) {
           if (patientErr.response?.status === 404) {
-            // No patient profile exists, use user data from localStorage as fallback
             const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
             patientData = {
               name: storedUser.name || user.name || "",
@@ -148,22 +144,21 @@ function Profile() {
     }
 
     try {
-      // Validate required fields
       if (!userData.name || !userData.email) {
         setError("Name and email are required")
         setIsLoading(false)
         return
       }
 
-      // Try to create/update the patient profile
-      await axios.post(`${API_BASE_URL}/api/patients`, userData, {
+      console.log("Saving profile with data:", userData)
+      const response = await axios.post(`${API_BASE_URL}/api/patients`, userData, {
         headers: { Authorization: `Bearer ${token}` },
       })
+      console.log("Profile save response:", response.data)
 
       setSuccessMessage("Profile saved successfully!")
       setIsEdit(false)
 
-      // Refresh the profile data
       await fetchPatientProfile(token)
     } catch (err) {
       console.error("Error saving profile:", err)

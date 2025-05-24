@@ -24,7 +24,8 @@ function Login() {
     setError("")
 
     try {
-      const response = await axios.post(`https://docplus-backend-ruby.vercel.app/api/auth/login`, formData)
+      const response = await axios.post(`http://localhost:3000/api/auth/login`, formData)
+      console.log("Login API Response:", response.data)
 
       // Store token and user data
       localStorage.setItem("token", response.data.token)
@@ -33,8 +34,12 @@ function Login() {
       console.log("Login successful:", response.data.user)
       navigate("/")
     } catch (err) {
-      console.error("Login error:", err)
-      setError(err.response?.data?.message || "Login failed. Please try again.")
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Login failed. Please check your network or server configuration."
+      setError(errorMessage)
+      console.error("Login error:", err.response?.data, err)
     } finally {
       setLoading(false)
     }
@@ -78,7 +83,6 @@ function Login() {
               />
             </div>
             <button
-            onClick={()=>navigate('/profile')}
               type="submit"
               disabled={loading}
               className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-green-400"

@@ -8,7 +8,7 @@ function Doctors() {
   const [filterDoctors, setFilterDoctors] = useState([]);
   const [speciality, setSpeciality] = useState(routeSpeciality || 'All');
   const navigate = useNavigate();
-
+  console.log(filterDoctors)
   const applyFilter = () => {
     if (speciality && speciality !== 'All') {
       setFilterDoctors(

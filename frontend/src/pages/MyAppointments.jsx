@@ -13,16 +13,23 @@ function MyAppointments() {
       const token = localStorage.getItem("token")
       if (!token) {
         setError("Authentication token is missing. Please sign in again.")
+        setAppointments([]) // Ensure array
         return
       }
-      const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/appointments/my-appointments`, {
+      const response = await axios.get(`http://localhost:3000/api/appointments/my-appointments`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      setAppointments(response.data)
+      console.log("Appointments API Response:", response.data)
+      const data = Array.isArray(response.data) ? response.data : []
+      setAppointments(data)
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || "Failed to fetch appointments."
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to fetch appointments. Please check your network or server configuration."
       setError(errorMessage)
       console.error("Error fetching appointments:", err.response?.data, err)
+      setAppointments([]) // Ensure array on error
     } finally {
       setLoading(false)
     }
@@ -40,7 +47,7 @@ function MyAppointments() {
         return
       }
       await axios.put(
-        `https://docplus-backend-ruby.vercel.app/api/appointments/cancel/${appointmentId}`,
+        `http://localhost:3000/api/appointments/cancel/${appointmentId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -74,23 +81,20 @@ function MyAppointments() {
         return
       }
 
-      // Load Razorpay script
       const scriptLoaded = await loadRazorpayScript()
       if (!scriptLoaded) {
         setError("Failed to load Razorpay SDK.")
         return
       }
 
-      // Create Razorpay order
       const response = await axios.post(
-        `https://docplus-backend-ruby.vercel.app/api/appointments/create-order`,
+        `http://localhost:3000/api/appointments/create-order`,
         { appointmentId },
         { headers: { Authorization: `Bearer ${token}` } },
       )
 
       const { orderId, amount, currency, key } = response.data
 
-      // Initialize Razorpay checkout
       const options = {
         key,
         amount,
@@ -100,9 +104,8 @@ function MyAppointments() {
         order_id: orderId,
         handler: async (response) => {
           try {
-            // Verify payment with backend
             await axios.post(
-              `https://docplus-backend-ruby.vercel.app/api/appointments/verify-payment`,
+              `http://localhost:3000/api/appointments/verify-payment`,
               {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
@@ -112,7 +115,6 @@ function MyAppointments() {
               { headers: { Authorization: `Bearer ${token}` } },
             )
 
-            // Update appointment status on frontend
             setAppointments((prev) =>
               prev.map((appt) =>
                 appt._id === appointmentId
@@ -158,7 +160,7 @@ function MyAppointments() {
         <p className="text-lg text-gray-600">Loading...</p>
       ) : error ? (
         <p className="text-lg text-red-600">{error}</p>
-      ) : appointments.length === 0 ? (
+      ) : !Array.isArray(appointments) || appointments.length === 0 ? (
         <p className="text-lg text-gray-600">No appointments found.</p>
       ) : (
         <div className="w-full max-w-4xl space-y-6">

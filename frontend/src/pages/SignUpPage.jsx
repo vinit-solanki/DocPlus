@@ -14,6 +14,7 @@ function SignUpPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
 
   const handleChange = (e) => {
     setFormData({
@@ -40,7 +41,6 @@ function SignUpPage() {
       return
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
       setError("Please enter a valid email address")
@@ -48,7 +48,6 @@ function SignUpPage() {
       return
     }
 
-    // Password validation
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters long")
       setLoading(false)
@@ -56,12 +55,20 @@ function SignUpPage() {
     }
 
     try {
-      const response = await axios.post(`https://docplus-backend-ruby.vercel.app/api/auth/register`, {
+      console.log("Registering user with data:", formData)
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
         role: "patient",
       })
+
+      console.log("Registration response:", response.data)
+
+      // Validate response
+      if (!response.data.token || !response.data.user) {
+        throw new Error("Invalid response from server")
+      }
 
       // Store token and user data
       localStorage.setItem("token", response.data.token)
@@ -71,13 +78,12 @@ function SignUpPage() {
       navigate("/profile") // Redirect to profile to complete setup
     } catch (err) {
       console.error("Registration error:", err)
-      if (err.response?.data?.message) {
-        setError(err.response.data.message)
-      } else if (err.response?.status === 400) {
-        setError("Invalid registration details. Please check your information.")
-      } else {
-        setError("Registration failed. Please try again later.")
-      }
+      const errorMessage =
+        err.response?.data?.message ||
+        (err.response?.status === 400
+          ? "Invalid registration details. Please check your information."
+          : "Registration failed. Please check your network or try again later.")
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -195,7 +201,6 @@ function SignUpPage() {
                 </div>
                 <button
                   type="submit"
-                  onClick={()=>navigate('/profile')}
                   disabled={loading}
                   className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-green-400"
                 >
