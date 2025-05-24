@@ -1,5 +1,40 @@
 const Patient = require('../models/Patient');
 
+const createPatient = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { name, email, phone, address, gender, dob, bloodGroup } = req.body;
+
+    let patient = await Patient.findOne({ user: userId });
+    
+    if (!patient) {
+      patient = new Patient({
+        user: userId,
+        name,
+        email,
+        phone,
+        address,
+        gender,
+        dob,
+        bloodGroup
+      });
+    } else {
+      patient.name = name;
+      patient.email = email;
+      patient.phone = phone;
+      patient.address = address;
+      patient.gender = gender;
+      patient.dob = dob;
+      patient.bloodGroup = bloodGroup;
+    }
+
+    await patient.save();
+    res.json(patient);
+  } catch (error) {
+    res.status(500).json({ message: 'Error saving patient', error: error.message });
+  }
+};
+
 const getPatient = async (req, res) => {
   try {
     // Use the user ID from the auth middleware
@@ -44,6 +79,7 @@ const updatePatient = async (req, res) => {
 };
 
 module.exports = {
+  createPatient,
   getPatient,
   updatePatient
 };

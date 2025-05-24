@@ -86,4 +86,12 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/me', auth, async (req, res) => {
+    try {
+      res.json({ userId: req.user.userId });
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching user', error });
+    }
+});
+
 module.exports = router;
