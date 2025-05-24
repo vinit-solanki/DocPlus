@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+"use client"
+
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import axios from "axios"
 
 function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -8,66 +10,78 @@ function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
-  });
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
+  })
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    });
-  };
+    })
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(''); // Clear any previous errors
-    
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+
     // Basic validation
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('All fields are required');
-      return;
+      setError("All fields are required")
+      setLoading(false)
+      return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+      setError("Passwords do not match")
+      setLoading(false)
+      return
     }
 
     // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return;
+      setError("Please enter a valid email address")
+      setLoading(false)
+      return
     }
 
     // Password validation
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
+      setError("Password must be at least 6 characters long")
+      setLoading(false)
+      return
     }
 
     try {
-      const response = await axios.post(`https://docplus-backend-ruby.vercel.app/api/auth/register`, {
+      const response = await axios.post(`http://localhost:3000/api/auth/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: 'patient' // Explicitly set the role
-      });
-      
-      localStorage.setItem("token", response.data.token);
-      navigate("/");
+        role: "patient",
+      })
+
+      // Store token and user data
+      localStorage.setItem("token", response.data.token)
+      localStorage.setItem("user", JSON.stringify(response.data.user))
+
+      console.log("Registration successful:", response.data.user)
+      navigate("/profile") // Redirect to profile to complete setup
     } catch (err) {
+      console.error("Registration error:", err)
       if (err.response?.data?.message) {
-        setError(err.response.data.message);
+        setError(err.response.data.message)
       } else if (err.response?.status === 400) {
-        setError('Invalid registration details. Please check your information.');
+        setError("Invalid registration details. Please check your information.")
       } else {
-        setError('Registration failed. Please try again later.');
+        setError("Registration failed. Please try again later.")
       }
-      console.error('Registration error:', err);
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="w-full min-h-screen flex flex-col md:flex-row items-center justify-center p-4">
@@ -79,16 +93,19 @@ function SignUpPage() {
               <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
                 Create your Doc<span className="text-green-600">+</span> account
               </h2>
-              <p className="text-xl text-gray-600">
-                Join thousands of patients and doctors on our platform
-              </p>
-              
+              <p className="text-xl text-gray-600">Join thousands of patients and doctors on our platform</p>
+
               {/* Feature Points */}
               <div className="space-y-4 pt-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                     <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                   </div>
                   <span className="text-gray-700">24/7 Medical Support</span>
@@ -96,7 +113,12 @@ function SignUpPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                     <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                      />
                     </svg>
                   </div>
                   <span className="text-gray-700">Verified Doctors</span>
@@ -132,6 +154,7 @@ function SignUpPage() {
                     onChange={handleChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -143,6 +166,7 @@ function SignUpPage() {
                     onChange={handleChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -154,6 +178,7 @@ function SignUpPage() {
                     onChange={handleChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -165,21 +190,21 @@ function SignUpPage() {
                     onChange={handleChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
+                    disabled={loading}
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+                  onClick={()=>navigate('/profile')}
+                  disabled={loading}
+                  className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-green-400"
                 >
-                  Sign Up
+                  {loading ? "Creating Account..." : "Sign Up"}
                 </button>
               </form>
               <p className="mt-4 text-center text-sm text-gray-600">
                 Already have an account?{" "}
-                <button
-                  onClick={() => navigate("/login")}
-                  className="text-green-600 hover:text-green-700"
-                >
+                <button onClick={() => navigate("/login")} className="text-green-600 hover:text-green-700">
                   Sign In
                 </button>
               </p>
@@ -188,7 +213,7 @@ function SignUpPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default SignUpPage;
+export default SignUpPage

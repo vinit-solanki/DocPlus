@@ -1,97 +1,114 @@
 const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Patient = require('../models/Patient');
+const auth = require('../middleware/auth');
 
+const router = express.Router();
+
+// Generate JWT token
+const generateToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
+    expiresIn: '7d',
+  });
+};
+
+// Register
 router.post('/register', async (req, res) => {
   try {
-    console.log('Registration request body:', req.body);
-    const { name, email, password, role = 'patient' } = req.body;
-    
+    const { name, email, password, role } = req.body;
+
+    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Create the user first
+    // Create user
     const user = new User({
       name,
       email,
-      password: hashedPassword,
-      role
+      password,
+      role: role || 'patient'
     });
-    
+
     await user.save();
-    
-    // Then create the patient with reference to the user
-    if (role === 'patient') {
-      const patient = new Patient({
-        name,
-        email,
-        user: user._id  // Reference to the user
-      });
-      await patient.save();
-      
-      // Update the user with the profile reference
-      user.profileId = patient._id;
-      await user.save();
-    }
-    
-    const token = jwt.sign({ userId: user._id, role }, process.env.JWT_SECRET);
-    res.status(201).json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        name, 
-        email, 
-        role 
-      } 
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
-    console.error('Registration error details:', error);
-    res.status(500).json({ message: 'Error creating user', error: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
 
+// Login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
+    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Check password
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET);
-    res.json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        name: user.name, 
+    // Generate token
+    const token = generateToken(user._id);
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
         email: user.email,
-        role: user.role 
-      } 
+        role: user.role
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error logging in', error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
+// Get current user
 router.get('/me', auth, async (req, res) => {
-    try {
-      res.json({ userId: req.user.userId });
-    } catch (error) {
-      res.status(500).json({ message: 'Error fetching user', error });
+  try {
+    let profile = null;
+    
+    if (req.user.role === 'patient') {
+      profile = await Patient.findOne({ user: req.user._id });
     }
+
+    res.json({
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      profile
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;

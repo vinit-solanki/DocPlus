@@ -1,32 +1,44 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import axios from "axios"
 
 function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-  });
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
+  })
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    });
-  };
+    })
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
     try {
-      const response =await axios.post(`https://docplus-backend-ruby.vercel.app/api/auth/login`, formData);
-      localStorage.setItem("token", response.data.token);
-      navigate("/");
+      const response = await axios.post(`http://localhost:3000/api/auth/login`, formData)
+
+      // Store token and user data
+      localStorage.setItem("token", response.data.token)
+      localStorage.setItem("user", JSON.stringify(response.data.user))
+
+      console.log("Login successful:", response.data.user)
+      navigate("/")
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      console.error("Login error:", err)
+      setError(err.response?.data?.message || "Login failed. Please try again.")
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="w-full flex flex-col justify-center items-center gap-3 py-7 px-4 text-gray-800">
@@ -35,9 +47,7 @@ function Login() {
           <h2 className="text-3xl font-bold text-gray-900">
             Welcome to Doc<span className="text-green-600">+</span>
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Sign in to access your account
-          </p>
+          <p className="mt-1 text-sm text-gray-600">Sign in to access your account</p>
         </div>
 
         <div className="bg-white shadow-lg rounded-lg p-6 w-full">
@@ -52,6 +62,7 @@ function Login() {
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 required
+                disabled={loading}
               />
             </div>
             <div>
@@ -63,28 +74,28 @@ function Login() {
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 required
+                disabled={loading}
               />
             </div>
             <button
+            onClick={()=>navigate('/profile')}
               type="submit"
-              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors disabled:bg-green-400"
             >
-              Sign In
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
           <p className="mt-4 text-center text-sm text-gray-600">
             Don't have an account?{" "}
-            <button
-              onClick={() => navigate("/sign-up")}
-              className="text-green-600 hover:text-green-700"
-            >
+            <button onClick={() => navigate("/sign-up")} className="text-green-600 hover:text-green-700">
               Sign Up
             </button>
           </p>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default Login;
+export default Login

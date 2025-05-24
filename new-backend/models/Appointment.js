@@ -35,9 +35,7 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
   },
 }, { 
-  timestamps: true  // This adds createdAt and updatedAt fields automatically
+  timestamps: true
 });
-
-// Removed unused variables
 
 module.exports = mongoose.model('Appointment', appointmentSchema);

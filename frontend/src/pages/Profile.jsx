@@ -1,128 +1,190 @@
-import React, { useState, useEffect } from 'react';
-import { assets } from '@/assets/assets_frontend/assets';
-import axios from 'axios';
+import { useState, useEffect } from "react"
+import { assets } from "@/assets/assets_frontend/assets"
+import axios from "axios"
+import { useNavigate } from "react-router-dom"
+import { jwtDecode } from "jwt-decode"
 
 function Profile() {
   const [userData, setUserData] = useState({
-    name: 'User',
-    image: assets.profile_image,
-    email: 'No Email Provided',
-    phone: 'No Phone Number Provided',
-    address: 'No Address Provided',
-    gender: '',
-    dob: '',
-    bloodGroup: '',
-  });
-  const [isEdit, setIsEdit] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    gender: "",
+    dob: "",
+    bloodGroup: "",
+  })
+  const [isEdit, setIsEdit] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const navigate = useNavigate()
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
 
   useEffect(() => {
-    const token = localStorage.getItem('token'); // Fixed key (adjust if different)
-    console.log('Token found:', token ? 'Yes' : 'No'); // Debug log
-    if (token) {
-      setIsAuthenticated(true);
-      const fetchPatient = async () => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      setError("Please sign in to view your profile.")
+      setIsLoading(false)
+      navigate("/login")
+      return
+    }
+
+    // Validate token
+    try {
+      const decoded = jwtDecode(token)
+      if (decoded.exp * 1000 < Date.now()) {
+        setError("Session expired. Please sign in again.")
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        setIsLoading(false)
+        navigate("/login")
+        return
+      }
+      setIsAuthenticated(true)
+      fetchPatientProfile(token)
+    } catch (err) {
+      setError("Invalid token. Please sign in again.")
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+      setIsLoading(false)
+      navigate("/login")
+    }
+  }, [navigate])
+
+  const fetchPatientProfile = async (token) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // First, try to get user data from /auth/me
+      const userResponse = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      const user = userResponse.data
+      let patientData = {
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.profile?.phone || "",
+        address: user.profile?.address || "",
+        gender: user.profile?.gender || "",
+        dob: user.profile?.dob ? new Date(user.profile.dob).toISOString().split("T")[0] : "",
+        bloodGroup: user.profile?.bloodGroup || "",
+      }
+
+      // If profile data is incomplete, try /patients/me
+      if (!user.profile || !user.profile.phone) {
         try {
-          setIsLoading(true);
-          const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/patients`, {
+          const patientResponse = await axios.get(`${API_BASE_URL}/api/patients/me`, {
             headers: { Authorization: `Bearer ${token}` },
-          });
-          console.log('API Response:', response.data); // Debug log
-          const data = response.data;
-          setUserData({
-            name: data.name || 'User',
-            image: data.image || assets.profile_image,
-            email: data.email || 'No Email Provided',
-            phone: data.phone || 'No Phone Number Provided',
-            address: data.address || 'No Address Provided',
-            gender: data.gender || '',
-            dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : '',
-            bloodGroup: data.bloodGroup || '',
-          });
-        } catch (err) {
-          console.error('Fetch Error:', err.response || err.message); // Debug log
-          if (err.response) {
-            if (err.response.status === 401) {
-              setError('Unauthorized. Please sign in again.');
-            } else if (err.response.status === 404) {
-              setError('No profile found. Please complete your profile.');
-            } else {
-              setError('Failed to load profile data.');
+          })
+          patientData = {
+            ...patientData,
+            phone: patientResponse.data.phone || "",
+            address: patientResponse.data.address || "",
+            gender: patientResponse.data.gender || "",
+            dob: patientResponse.data.dob
+              ? new Date(patientResponse.data.dob).toISOString().split("T")[0]
+              : "",
+            bloodGroup: patientResponse.data.bloodGroup || "",
+          }
+        } catch (patientErr) {
+          if (patientErr.response?.status === 404) {
+            // No patient profile exists, use user data from localStorage as fallback
+            const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+            patientData = {
+              name: storedUser.name || user.name || "",
+              email: storedUser.email || user.email || "",
+              phone: "",
+              address: "",
+              gender: "",
+              dob: "",
+              bloodGroup: "",
             }
           } else {
-            setError('Network error. Please check your connection.');
+            throw patientErr
           }
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchPatient();
-    } else {
-      setError('Please sign in to view your profile.');
-      setIsLoading(false);
-    }
-  }, []);
-
-  const handleSave = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Saving profile with data:', userData);
-      let response;
-      try {
-        response = await axios.put(
-          `https://docplus-backend-ruby.vercel.app/api/patients`,
-          { ...userData },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } catch (err) {
-        if (err.response?.status === 404) {
-          // Create new patient if none exists
-          response = await axios.post(
-            `https://docplus-backend-ruby.vercel.app/api/patients`,
-            { ...userData },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        } else {
-          throw err;
         }
       }
-      console.log('Save Response:', response.data);
-      setUserData({
-        name: response.data.name || 'User',
-        image: response.data.image || assets.profile_image,
-        email: response.data.email || 'No Email Provided',
-        phone: response.data.phone || 'No Phone Number Provided',
-        address: response.data.address || 'No Address Provided',
-        gender: response.data.gender || '',
-        dob: response.data.dob ? new Date(response.data.dob).toISOString().split('T')[0] : '',
-        bloodGroup: response.data.bloodGroup || '',
-      });
-      setIsEdit(false);
-      setSuccessMessage('Profile updated successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+
+      setUserData(patientData)
     } catch (err) {
-      console.error('Save Error:', err.response || err.message);
+      console.error("Error fetching profile:", err)
       setError(
-        err.response?.status === 401
-          ? 'Unauthorized. Please sign in again.'
-          : 'Failed to update profile.'
-      );
+        err.response?.data?.message ||
+          "Failed to load profile data. Please try again or sign in again."
+      )
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        navigate("/login")
+      }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setUserData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleSave = async () => {
+    setIsLoading(true)
+    setError(null)
+    setSuccessMessage("")
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      setError("Authentication required. Please sign in again.")
+      setIsLoading(false)
+      navigate("/login")
+      return
+    }
+
+    try {
+      // Validate required fields
+      if (!userData.name || !userData.email) {
+        setError("Name and email are required")
+        setIsLoading(false)
+        return
+      }
+
+      // Try to create/update the patient profile
+      await axios.post(`${API_BASE_URL}/api/patients`, userData, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      setSuccessMessage("Profile saved successfully!")
+      setIsEdit(false)
+
+      // Refresh the profile data
+      await fetchPatientProfile(token)
+    } catch (err) {
+      console.error("Error saving profile:", err)
+      setError(err.response?.data?.message || "Failed to save profile")
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        navigate("/login")
+      }
+    } finally {
+      setIsLoading(false)
+      setTimeout(() => setSuccessMessage(""), 3000)
+    }
+  }
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-gray-600">Loading...</p>
       </div>
-    );
+    )
   }
 
   if (!isAuthenticated) {
@@ -130,7 +192,7 @@ function Profile() {
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-red-600">{error}</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -138,59 +200,86 @@ function Profile() {
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center gap-4 mb-8">
           <img
-            src={userData.image}
-            alt={userData.name}
+            src={assets.profile_image || "/placeholder.svg"}
+            alt={userData.name || "User"}
             className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
           />
           <div>
             {isEdit ? (
               <input
                 type="text"
+                name="name"
                 value={userData.name}
-                onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
+                placeholder="Full Name"
               />
             ) : (
-              <h2 className="text-2xl font-bold text-gray-800">{userData.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-800">{userData.name || "No name provided"}</h2>
             )}
-            <p className="text-gray-600">{userData.email}</p>
+            <p className="text-gray-600">{userData.email || "No email provided"}</p>
           </div>
         </div>
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-        {successMessage && <p className="text-green-600 text-sm mb-4">{successMessage}</p>}
+
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
+        {successMessage && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{successMessage}</div>}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            {isEdit ? (
+              <input
+                type="email"
+                name="email"
+                value={userData.email}
+                onChange={handleInputChange}
+                className="border rounded-md px-3 py-2 w-full"
+                placeholder="Email address"
+              />
+            ) : (
+              <p className="text-gray-800">{userData.email || "Not provided"}</p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Phone Number</label>
             {isEdit ? (
               <input
                 type="tel"
+                name="phone"
                 value={userData.phone}
-                onChange={(e) => setUserData((prev) => ({ ...prev, phone: e.target.value }))}
+                onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
+                placeholder="Phone number"
               />
             ) : (
-              <p className="text-gray-800">{userData.phone}</p>
+              <p className="text-gray-800">{userData.phone || "Not provided"}</p>
             )}
           </div>
+
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Address</label>
             {isEdit ? (
               <input
                 type="text"
+                name="address"
                 value={userData.address}
-                onChange={(e) => setUserData((prev) => ({ ...prev, address: e.target.value }))}
+                onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
+                placeholder="Address"
               />
             ) : (
-              <p className="text-gray-800">{userData.address}</p>
+              <p className="text-gray-800">{userData.address || "Not provided"}</p>
             )}
           </div>
+
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Gender</label>
             {isEdit ? (
               <select
+                name="gender"
                 value={userData.gender}
-                onChange={(e) => setUserData((prev) => ({ ...prev, gender: e.target.value }))}
+                onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
               >
                 <option value="">Select Gender</option>
@@ -199,28 +288,32 @@ function Profile() {
                 <option value="other">Other</option>
               </select>
             ) : (
-              <p className="text-gray-800 capitalize">{userData.gender || 'Not Specified'}</p>
+              <p className="text-gray-800 capitalize">{userData.gender || "Not specified"}</p>
             )}
           </div>
+
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
             {isEdit ? (
               <input
                 type="date"
+                name="dob"
                 value={userData.dob}
-                onChange={(e) => setUserData((prev) => ({ ...prev, dob: e.target.value }))}
+                onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
               />
             ) : (
-              <p className="text-gray-800">{userData.dob || 'Not Provided'}</p>
+              <p className="text-gray-800">{userData.dob || "Not provided"}</p>
             )}
           </div>
+
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Blood Group</label>
             {isEdit ? (
               <select
+                name="bloodGroup"
                 value={userData.bloodGroup}
-                onChange={(e) => setUserData((prev) => ({ ...prev, bloodGroup: e.target.value }))}
+                onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
               >
                 <option value="">Select Blood Group</option>
@@ -234,16 +327,18 @@ function Profile() {
                 <option value="O-">O-</option>
               </select>
             ) : (
-              <p className="text-gray-800">{userData.bloodGroup || 'Not Provided'}</p>
+              <p className="text-gray-800">{userData.bloodGroup || "Not provided"}</p>
             )}
           </div>
         </div>
+
         <div className="mt-8 flex justify-end gap-4">
           {isEdit ? (
             <>
               <button
                 onClick={() => setIsEdit(false)}
-                className="bg-gray-400 text-white px-6 py-2 rounded-md hover:bg-gray-500 transition-colors"
+                disabled={isLoading}
+                className="bg-gray-400 text-white px-6 py-2 rounded-md hover:bg-gray-500 transition-colors disabled:bg-gray-300"
               >
                 Cancel
               </button>
@@ -252,13 +347,13 @@ function Profile() {
                 disabled={isLoading}
                 className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:bg-green-400"
               >
-                {isLoading ? 'Saving...' : 'Save Details'}
+                {isLoading ? "Saving..." : "Save Profile"}
               </button>
             </>
           ) : (
             <button
               onClick={() => setIsEdit(true)}
-              className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition-colors"
+              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
             >
               Edit Profile
             </button>
@@ -266,7 +361,7 @@ function Profile() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default Profile;
+export default Profile

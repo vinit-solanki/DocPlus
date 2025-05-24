@@ -1,91 +1,94 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+"use client"
+
+import { useEffect, useState } from "react"
+import axios from "axios"
 
 function MyAppointments() {
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [appointments, setAppointments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const fetchAppointments = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token")
       if (!token) {
-        setError('Authentication token is missing. Please sign in again.');
-        return;
+        setError("Authentication token is missing. Please sign in again.")
+        return
       }
-      const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/appointments/my-appointments`, {
+      const response = await axios.get(`http://localhost:3000/api/appointments/my-appointments`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
-      setAppointments(response.data);
+      })
+      setAppointments(response.data)
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch appointments.';
-      setError(errorMessage);
-      console.error('Error fetching appointments:', err.response?.data, err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to fetch appointments."
+      setError(errorMessage)
+      console.error("Error fetching appointments:", err.response?.data, err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchAppointments();
-  }, []);
+    fetchAppointments()
+  }, [])
 
   const handleCancel = async (appointmentId) => {
     try {
-      const token = localStorage.getItem('token');
-      console.log('JWT Token for cancel:', token);
+      const token = localStorage.getItem("token")
       if (!token) {
-        setError('Authentication token is missing. Please sign in again.');
-        return;
+        setError("Authentication token is missing. Please sign in again.")
+        return
       }
-      await axios.put(`https://docplus-backend-ruby.vercel.app/api/appointments/cancel/${appointmentId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `http://localhost:3000/api/appointments/cancel/${appointmentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
       setAppointments((prev) =>
-        prev.map((appt) =>
-          appt._id === appointmentId ? { ...appt, status: 'cancelled' } : appt
-        )
-      );
+        prev.map((appt) => (appt._id === appointmentId ? { ...appt, status: "cancelled" } : appt)),
+      )
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to cancel appointment.';
-      setError(errorMessage);
-      console.error('Error cancelling appointment:', err.response?.data, err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to cancel appointment."
+      setError(errorMessage)
+      console.error("Error cancelling appointment:", err.response?.data, err)
     }
-  };
+  }
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
+      const script = document.createElement("script")
+      script.src = "https://checkout.razorpay.com/v1/checkout.js"
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
 
   const handlePayNow = async (appointmentId, fees, doctorName, date, time) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token")
       if (!token) {
-        setError('Authentication token is missing. Please sign in again.');
-        return;
+        setError("Authentication token is missing. Please sign in again.")
+        return
       }
 
       // Load Razorpay script
-      const scriptLoaded = await loadRazorpayScript();
+      const scriptLoaded = await loadRazorpayScript()
       if (!scriptLoaded) {
-        setError('Failed to load Razorpay SDK.');
-        return;
+        setError("Failed to load Razorpay SDK.")
+        return
       }
 
       // Create Razorpay order
       const response = await axios.post(
-        `https://docplus-backend-ruby.vercel.app/api/appointments/create-order`,
+        `http://localhost:3000/api/appointments/create-order`,
         { appointmentId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
 
-      const { orderId, amount, currency, key } = response.data;
+      const { orderId, amount, currency, key } = response.data
 
       // Initialize Razorpay checkout
       const options = {
@@ -95,44 +98,58 @@ function MyAppointments() {
         name: `Appointment with ${doctorName}`,
         description: `Date: ${new Date(date).toLocaleDateString()}, Time: ${time}`,
         order_id: orderId,
-        handler: async function (response) {
+        handler: async (response) => {
           try {
+            // Verify payment with backend
+            await axios.post(
+              `http://localhost:3000/api/appointments/verify-payment`,
+              {
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                appointmentId: appointmentId,
+              },
+              { headers: { Authorization: `Bearer ${token}` } },
+            )
+
             // Update appointment status on frontend
             setAppointments((prev) =>
               prev.map((appt) =>
-                appt._id === appointmentId ? { ...appt, status: 'paid', paymentId: response.razorpay_payment_id } : appt
-              )
-            );
-            alert('Payment successful!');
+                appt._id === appointmentId
+                  ? { ...appt, status: "paid", paymentId: response.razorpay_payment_id }
+                  : appt,
+              ),
+            )
+            alert("Payment successful!")
           } catch (err) {
-            setError('Failed to update appointment after payment.');
-            console.error('Error after payment:', err);
+            setError("Payment verification failed. Please contact support.")
+            console.error("Error verifying payment:", err)
           }
         },
         prefill: {
-          name: '',
-          email: '',
-          contact: '',
+          name: "",
+          email: "",
+          contact: "",
         },
         notes: {
           appointmentId,
         },
         theme: {
-          color: '#16a34a',
+          color: "#16a34a",
         },
-      };
+      }
 
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        setError(`Payment failed: ${response.error.description}`);
-      });
-      rzp.open();
+      const rzp = new window.Razorpay(options)
+      rzp.on("payment.failed", (response) => {
+        setError(`Payment failed: ${response.error.description}`)
+      })
+      rzp.open()
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to initiate payment.';
-      setError(errorMessage);
-      console.error('Error initiating payment:', err.response?.data, err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to initiate payment."
+      setError(errorMessage)
+      console.error("Error initiating payment:", err.response?.data, err)
     }
-  };
+  }
 
   return (
     <div className="w-full flex flex-col items-center py-10 px-4 text-gray-800 bg-gray-50">
@@ -151,16 +168,14 @@ function MyAppointments() {
                 <div>
                   <h2 className="text-xl font-semibold">{appt.doctorId.name}</h2>
                   <p className="text-gray-600">{appt.doctorId.speciality}</p>
-                  <p className="text-gray-600">
-                    Date: {new Date(appt.date).toLocaleDateString()}
-                  </p>
+                  <p className="text-gray-600">Date: {new Date(appt.date).toLocaleDateString()}</p>
                   <p className="text-gray-600">Time: {appt.time}</p>
-                  <p className="text-gray-600">Reason: {appt.reason || 'Not specified'}</p>
+                  <p className="text-gray-600">Reason: {appt.reason || "Not specified"}</p>
                   <p className="text-gray-600">Fees: ₹{appt.fees}</p>
                   <p className="text-gray-600 capitalize">Status: {appt.status}</p>
                 </div>
                 <div className="flex flex-col gap-2">
-                  {appt.status === 'pending' && (
+                  {appt.status === "pending" && (
                     <>
                       <button
                         onClick={() => handleCancel(appt._id)}
@@ -169,15 +184,7 @@ function MyAppointments() {
                         Cancel Appointment
                       </button>
                       <button
-                        onClick={() =>
-                          handlePayNow(
-                            appt._id,
-                            appt.fees,
-                            appt.doctorId.name,
-                            appt.date,
-                            appt.time
-                          )
-                        }
+                        onClick={() => handlePayNow(appt._id, appt.fees, appt.doctorId.name, appt.date, appt.time)}
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                       >
                         Pay Now
@@ -191,7 +198,7 @@ function MyAppointments() {
         </div>
       )}
     </div>
-  );
+  )
 }
 
-export default MyAppointments;
+export default MyAppointments
