@@ -12,7 +12,7 @@ const AppContextProvider = ({ children }) => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/doctors`);
+        const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/doctors`);
         console.log("Doctors API Response:", response.data);
         // Ensure response.data is an array
         const data = Array.isArray(response.data) ? response.data : [];
