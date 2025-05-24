@@ -16,7 +16,7 @@ function MyAppointments() {
         setAppointments([]) // Ensure array
         return
       }
-      const response = await axios.get(`http://localhost:3000/api/appointments/my-appointments`, {
+      const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/appointments/my-appointments`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       console.log("Appointments API Response:", response.data)
@@ -47,7 +47,7 @@ function MyAppointments() {
         return
       }
       await axios.put(
-        `http://localhost:3000/api/appointments/cancel/${appointmentId}`,
+        `https://docplus-backend-ruby.vercel.app/api/appointments/cancel/${appointmentId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -88,7 +88,7 @@ function MyAppointments() {
       }
 
       const response = await axios.post(
-        `http://localhost:3000/api/appointments/create-order`,
+        `https://docplus-backend-ruby.vercel.app/api/appointments/create-order`,
         { appointmentId },
         { headers: { Authorization: `Bearer ${token}` } },
       )
@@ -105,7 +105,7 @@ function MyAppointments() {
         handler: async (response) => {
           try {
             await axios.post(
-              `http://localhost:3000/api/appointments/verify-payment`,
+              `https://docplus-backend-ruby.vercel.app/api/appointments/verify-payment`,
               {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,

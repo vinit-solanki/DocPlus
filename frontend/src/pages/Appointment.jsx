@@ -26,7 +26,7 @@ const Appointment = () => {
 
   const fetchDocInfo = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/doctors/${docId}`)
+      const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/doctors/${docId}`)
       const doctor = response.data
       console.log("Doctor API Response:", doctor)
       
@@ -73,7 +73,7 @@ const Appointment = () => {
     if (token) {
       const fetchUserData = async () => {
         try {
-          const response = await axios.get(`http://localhost:3000/api/patients/me`, {
+          const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/patients/me`, {
             headers: { Authorization: `Bearer ${token}` },
           })
           const userData = response.data
@@ -120,7 +120,7 @@ const Appointment = () => {
 
     try {
       await axios.post(
-        `http://localhost:3000/api/patients`,
+        `https://docplus-backend-ruby.vercel.app/api/patients`,
         {
           name: patientForm.name,
           email: patientForm.email,
@@ -134,7 +134,7 @@ const Appointment = () => {
       console.log("Patient profile saved/updated")
 
       const appointmentResponse = await axios.post(
-        `http://localhost:3000/api/appointments`,
+        `https://docplus-backend-ruby.vercel.app/api/appointments`,
         {
           doctorId: docId,
           date: docSlots[selectedSlot.dayIndex].date,

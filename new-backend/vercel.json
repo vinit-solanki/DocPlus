@@ -29,6 +29,6 @@
         "VITE_ALLOWED_DOMAINS":"gmail.com,ves.ac.in",
         "VITE_APP_URL":"http://localhost:5173",
         "JWT_SECRET":"your_secret_key",
-        "VITE_BACKEND_URL" : "http://localhost:3000/"
+        "VITE_BACKEND_URL" : "https://docplus-backend-ruby.vercel.app/"
     }
 }
