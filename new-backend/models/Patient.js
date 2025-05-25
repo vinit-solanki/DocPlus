@@ -4,35 +4,38 @@ const patientSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   name: {
     type: String,
-    required: true
+    required: true,
   },
   email: {
     type: String,
     required: true,
-    unique: true
+    // Removed unique: true to avoid conflicts
   },
   phone: {
-    type: String
+    type: String,
   },
   address: {
-    type: String
+    type: String,
   },
   gender: {
     type: String,
-    enum: ['male', 'female', 'other']
+    enum: ['male', 'female', 'other', ''], // Allow empty string
+    default: '',
   },
   dob: {
-    type: Date
+    type: Date,
   },
   bloodGroup: {
-    type: String
-  }
+    type: String,
+    enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', '', null],
+    default: '',
+  },
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
 module.exports = mongoose.model('Patient', patientSchema);

@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react"
-import { assets } from "@/assets/assets_frontend/assets"
-import axios from "axios"
-import { useNavigate } from "react-router-dom"
-import { jwtDecode } from "jwt-decode"
+import { useState, useEffect } from "react";
+import { assets } from "@/assets/assets_frontend/assets";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 function Profile() {
   const [userData, setUserData] = useState({
@@ -13,55 +13,56 @@ function Profile() {
     gender: "",
     dob: "",
     bloodGroup: "",
-  })
-  const [isEdit, setIsEdit] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [successMessage, setSuccessMessage] = useState("")
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const navigate = useNavigate()
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `https://docplus-backend-ruby.vercel.app`
+  });
+  const [isEdit, setIsEdit] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://docplus-backend-ruby.vercel.app";
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
+    const token = localStorage.getItem("token");
     if (!token) {
-      setError("Please sign in to view your profile.")
-      setIsLoading(false)
-      navigate("/login")
-      return
+      setError("Please sign in to view your profile.");
+      setIsLoading(false);
+      navigate("/login");
+      return;
     }
 
     try {
-      const decoded = jwtDecode(token)
+      const decoded = jwtDecode(token);
       if (decoded.exp * 1000 < Date.now()) {
-        setError("Session expired. Please sign in again.")
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        setIsLoading(false)
-        navigate("/login")
-        return
+        setError("Session expired. Please sign in again.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setIsLoading(false);
+        navigate("/login");
+        return;
       }
-      setIsAuthenticated(true)
-      fetchPatientProfile(token)
+      setIsAuthenticated(true);
+      fetchPatientProfile(token);
     } catch (err) {
-      setError("Invalid token. Please sign in again.")
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
-      setIsLoading(false)
-      navigate("/login")
+      setError("Invalid token. Please sign in again.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setIsLoading(false);
+      navigate("/login");
     }
-  }, [navigate])
+  }, [navigate]);
 
   const fetchPatientProfile = async (token) => {
     try {
-      setIsLoading(true)
-      setError(null)
+      setIsLoading(true);
+      setError(null);
 
-      const userResponse = await axios.get(`https://docplus-backend-ruby.vercel.app/api/auth/me`, {
+      // Fetch user data
+      const userResponse = await axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
+      });
 
-      const user = userResponse.data
+      const user = userResponse.data;
       let patientData = {
         name: user.name || "",
         email: user.email || "",
@@ -70,116 +71,160 @@ function Profile() {
         gender: user.profile?.gender || "",
         dob: user.profile?.dob ? new Date(user.profile.dob).toISOString().split("T")[0] : "",
         bloodGroup: user.profile?.bloodGroup || "",
-      }
+      };
 
-      if (!user.profile || !user.profile.phone) {
-        try {
-          const patientResponse = await axios.get(`https://docplus-backend-ruby.vercel.app/api/patients/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          patientData = {
-            ...patientData,
-            phone: patientResponse.data.phone || "",
-            address: patientResponse.data.address || "",
-            gender: patientResponse.data.gender || "",
-            dob: patientResponse.data.dob
-              ? new Date(patientResponse.data.dob).toISOString().split("T")[0]
-              : "",
-            bloodGroup: patientResponse.data.bloodGroup || "",
-          }
-        } catch (patientErr) {
-          if (patientErr.response?.status === 404) {
-            const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
-            patientData = {
-              name: storedUser.name || user.name || "",
-              email: storedUser.email || user.email || "",
-              phone: "",
-              address: "",
-              gender: "",
-              dob: "",
-              bloodGroup: "",
-            }
-          } else {
-            throw patientErr
-          }
+      // Fetch patient profile
+      try {
+        const patientResponse = await axios.get(`${API_BASE_URL}/api/patients/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        patientData = {
+          name: patientResponse.data.name || user.name || "",
+          email: patientResponse.data.email || user.email || "",
+          phone: patientResponse.data.phone || "",
+          address: patientResponse.data.address || "",
+          gender: patientResponse.data.gender || "",
+          dob: patientResponse.data.dob
+            ? new Date(patientResponse.data.dob).toISOString().split("T")[0]
+            : "",
+          bloodGroup: patientResponse.data.bloodGroup || "",
+        };
+      } catch (patientErr) {
+        if (patientErr.response?.status === 404) {
+          setError("Please complete your profile to continue.");
+          setIsEdit(true);
+        } else {
+          throw patientErr;
         }
       }
 
-      setUserData(patientData)
+      setUserData(patientData);
     } catch (err) {
-      console.error("Error fetching profile:", err)
+      console.error("Error fetching profile:", err.response?.data || err);
       setError(
         err.response?.data?.message ||
           "Failed to load profile data. Please try again or sign in again."
-      )
+      );
       if (err.response?.status === 401) {
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        navigate("/login")
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setUserData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
+
+  const validateInputs = () => {
+    if (!userData.name || !userData.email) {
+      setError("Name and email are required.");
+      return false;
+    }
+    if (userData.phone && !/^\d{10}$/.test(userData.phone)) {
+      setError("Phone number must be 10 digits.");
+      return false;
+    }
+    if (userData.dob && isNaN(new Date(userData.dob).getTime())) {
+      setError("Invalid date of birth.");
+      return false;
+    }
+    const validBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', '', null];
+    if (userData.bloodGroup && !validBloodGroups.includes(userData.bloodGroup)) {
+      setError("Invalid blood group.");
+      return false;
+    }
+    const validGenders = ['male', 'female', 'other', '', null];
+    if (userData.gender && !validGenders.includes(userData.gender)) {
+      setError("Invalid gender.");
+      return false;
+    }
+    return true;
+  };
 
   const handleSave = async () => {
-    setIsLoading(true)
-    setError(null)
-    setSuccessMessage("")
+    if (!validateInputs()) {
+      setIsLoading(false);
+      return;
+    }
 
-    const token = localStorage.getItem("token")
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage("");
+
+    const token = localStorage.getItem("token");
     if (!token) {
-      setError("Authentication required. Please sign in again.")
-      setIsLoading(false)
-      navigate("/login")
-      return
+      setError("Authentication required. Please sign in again.");
+      setIsLoading(false);
+      navigate("/login");
+      return;
     }
 
     try {
-      if (!userData.name || !userData.email) {
-        setError("Name and email are required")
-        setIsLoading(false)
-        return
+      const payload = {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone || '',
+        address: userData.address || '',
+        gender: userData.gender || '',
+        dob: userData.dob ? new Date(userData.dob).toISOString() : '',
+        bloodGroup: userData.bloodGroup || '',
+      };
+
+      console.log("Saving patient profile with data:", payload);
+      const patientResponse = await axios.post(`${API_BASE_URL}/api/patients`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Patient profile save response:", patientResponse.data);
+
+      // Update User if name or email changed
+      const userResponse = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const currentUser = userResponse.data;
+      if (currentUser.name !== userData.name || currentUser.email !== userData.email) {
+        await axios.put(
+          `${API_BASE_URL}/api/auth/me`,
+          { name: userData.name, email: userData.email },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log("User details updated:", { name: userData.name, email: userData.email });
       }
 
-      console.log("Saving profile with data:", userData)
-      const response = await axios.post(`https://docplus-backend-ruby.vercel.app/api/patients`, userData, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      console.log("Profile save response:", response.data)
-
-      setSuccessMessage("Profile saved successfully!")
-      setIsEdit(false)
-
-      await fetchPatientProfile(token)
+      setSuccessMessage("Profile saved successfully!");
+      setIsEdit(false);
+      await fetchPatientProfile(token);
     } catch (err) {
-      console.error("Error saving profile:", err)
-      setError(err.response?.data?.message || "Failed to save profile")
+      console.error("Error saving profile:", err.response?.data || err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Failed to save profile. Please try again.";
+      setError(errorMessage);
       if (err.response?.status === 401) {
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        navigate("/login")
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
       }
     } finally {
-      setIsLoading(false)
-      setTimeout(() => setSuccessMessage(""), 3000)
+      setIsLoading(false);
+      setTimeout(() => setSuccessMessage(""), 3000);
     }
-  }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-gray-600">Loading...</p>
       </div>
-    )
+    );
   }
 
   if (!isAuthenticated) {
@@ -187,7 +232,7 @@ function Profile() {
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-red-600">{error}</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -208,6 +253,7 @@ function Profile() {
                 onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
                 placeholder="Full Name"
+                required
               />
             ) : (
               <h2 className="text-2xl font-bold text-gray-800">{userData.name || "No name provided"}</h2>
@@ -217,7 +263,9 @@ function Profile() {
         </div>
 
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
-        {successMessage && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{successMessage}</div>}
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{successMessage}</div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -230,6 +278,7 @@ function Profile() {
                 onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
                 placeholder="Email address"
+                required
               />
             ) : (
               <p className="text-gray-800">{userData.email || "Not provided"}</p>
@@ -245,7 +294,8 @@ function Profile() {
                 value={userData.phone}
                 onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
-                placeholder="Phone number"
+                placeholder="Phone number (10 digits)"
+                pattern="\d{10}"
               />
             ) : (
               <p className="text-gray-800">{userData.phone || "Not provided"}</p>
@@ -296,6 +346,7 @@ function Profile() {
                 value={userData.dob}
                 onChange={handleInputChange}
                 className="border rounded-md px-3 py-2 w-full"
+                max={new Date().toISOString().split("T")[0]}
               />
             ) : (
               <p className="text-gray-800">{userData.dob || "Not provided"}</p>
@@ -356,7 +407,7 @@ function Profile() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Profile
+export default Profile;

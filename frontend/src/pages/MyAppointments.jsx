@@ -1,99 +1,121 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import axios from "axios"
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function MyAppointments() {
-  const [appointments, setAppointments] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://docplus-backend-ruby.vercel.app";
 
   const fetchAppointments = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
       if (!token) {
-        setError("Authentication token is missing. Please sign in again.")
-        setAppointments([]) // Ensure array
-        return
+        setError("Please sign in to view your appointments.");
+        setAppointments([]);
+        navigate("/login");
+        return;
       }
-      const response = await axios.get(`https://docplus-backend-ruby.vercel.app/api/appointments/my-appointments`, {
+      const response = await axios.get(`${API_BASE_URL}/api/appointments/my-appointments`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      console.log("Appointments API Response:", response.data)
-      const data = Array.isArray(response.data) ? response.data : []
-      setAppointments(data)
+      });
+      console.log("Appointments API Response:", response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setAppointments(data);
     } catch (err) {
+      console.error("Error fetching appointments:", err.response?.data || err);
       const errorMessage =
         err.response?.data?.message ||
-        err.message ||
-        "Failed to fetch appointments. Please check your network or server configuration."
-      setError(errorMessage)
-      console.error("Error fetching appointments:", err.response?.data, err)
-      setAppointments([]) // Ensure array on error
+        "Failed to fetch appointments. Please try again.";
+      setError(errorMessage);
+      if (err.response?.status === 404) {
+        setError("Please complete your profile to view appointments.");
+        navigate("/profile");
+      } else if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+      }
+      setAppointments([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchAppointments()
-  }, [])
+    fetchAppointments();
+  }, [navigate]);
 
   const handleCancel = async (appointmentId) => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
       if (!token) {
-        setError("Authentication token is missing. Please sign in again.")
-        return
+        setError("Please sign in to cancel appointments.");
+        navigate("/login");
+        return;
       }
       await axios.put(
-        `https://docplus-backend-ruby.vercel.app/api/appointments/cancel/${appointmentId}`,
+        `${API_BASE_URL}/api/appointments/cancel/${appointmentId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
-        },
-      )
+        }
+      );
       setAppointments((prev) =>
-        prev.map((appt) => (appt._id === appointmentId ? { ...appt, status: "cancelled" } : appt)),
-      )
+        prev.map((appt) =>
+          appt._id === appointmentId ? { ...appt, status: "cancelled" } : appt
+        )
+      );
+      setSuccessMessage("Appointment cancelled successfully!");
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || "Failed to cancel appointment."
-      setError(errorMessage)
-      console.error("Error cancelling appointment:", err.response?.data, err)
+      console.error("Error cancelling appointment:", err.response?.data || err);
+      const errorMessage =
+        err.response?.data?.message || "Failed to cancel appointment.";
+      setError(errorMessage);
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+      }
     }
-  }
+  };
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
-      const script = document.createElement("script")
-      script.src = "https://checkout.razorpay.com/v1/checkout.js"
-      script.onload = () => resolve(true)
-      script.onerror = () => resolve(false)
-      document.body.appendChild(script)
-    })
-  }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   const handlePayNow = async (appointmentId, fees, doctorName, date, time) => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
       if (!token) {
-        setError("Authentication token is missing. Please sign in again.")
-        return
+        setError("Please sign in to make a payment.");
+        navigate("/login");
+        return;
       }
 
-      const scriptLoaded = await loadRazorpayScript()
+      const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        setError("Failed to load Razorpay SDK.")
-        return
+        setError("Failed to load payment gateway.");
+        return;
       }
 
       const response = await axios.post(
-        `https://docplus-backend-ruby.vercel.app/api/appointments/create-order`,
+        `${API_BASE_URL}/api/appointments/create-order`,
         { appointmentId },
-        { headers: { Authorization: `Bearer ${token}` } },
-      )
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      const { orderId, amount, currency, key } = response.data
+      const { orderId, amount, currency, key } = response.data;
 
       const options = {
         key,
@@ -105,27 +127,27 @@ function MyAppointments() {
         handler: async (response) => {
           try {
             await axios.post(
-              `https://docplus-backend-ruby.vercel.app/api/appointments/verify-payment`,
+              `${API_BASE_URL}/api/appointments/verify-payment`,
               {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
                 appointmentId: appointmentId,
               },
-              { headers: { Authorization: `Bearer ${token}` } },
-            )
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
 
             setAppointments((prev) =>
               prev.map((appt) =>
                 appt._id === appointmentId
                   ? { ...appt, status: "paid", paymentId: response.razorpay_payment_id }
-                  : appt,
-              ),
-            )
-            alert("Payment successful!")
+                  : appt
+              )
+            );
+            setSuccessMessage("Payment successful!");
           } catch (err) {
-            setError("Payment verification failed. Please contact support.")
-            console.error("Error verifying payment:", err)
+            setError("Payment verification failed. Please contact support.");
+            console.error("Error verifying payment:", err.response?.data || err);
           }
         },
         prefill: {
@@ -139,19 +161,25 @@ function MyAppointments() {
         theme: {
           color: "#16a34a",
         },
-      }
+      };
 
-      const rzp = new window.Razorpay(options)
+      const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", (response) => {
-        setError(`Payment failed: ${response.error.description}`)
-      })
-      rzp.open()
+        setError(`Payment failed: ${response.error.description}`);
+      });
+      rzp.open();
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || "Failed to initiate payment."
-      setError(errorMessage)
-      console.error("Error initiating payment:", err.response?.data, err)
+      console.error("Error initiating payment:", err.response?.data || err);
+      const errorMessage =
+        err.response?.data?.message || "Failed to initiate payment.";
+      setError(errorMessage);
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+      }
     }
-  }
+  };
 
   return (
     <div className="w-full flex flex-col items-center py-10 px-4 text-gray-800 bg-gray-50">
@@ -200,7 +228,7 @@ function MyAppointments() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default MyAppointments
+export default MyAppointments;

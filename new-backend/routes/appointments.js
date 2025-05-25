@@ -126,12 +126,12 @@ router.post("/", auth, async (req, res) => {
     console.log("Creating appointment:", { doctorId, date, time, reason })
 
     // Find patient profile
-    const patient = await Patient.findOne({ user: req.user._id })
+    const patient = await Patient.findOne({ user: req.user._id });
     if (!patient) {
       return res.status(400).json({
         message: "Patient profile not found. Please complete your profile first.",
         requiresProfile: true,
-      })
+      });
     }
 
     // Find doctor and get fees
