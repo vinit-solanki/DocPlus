@@ -28,6 +28,7 @@ const ChatbotPage = () => {
         script.onload = () => {
           if (window.botpressWebChat) {
             window.botpressWebChat.init({
+              // https://cdn.botpress.cloud/webchat/v3.0/shareable.html?configUrl=https://files.bpcontent.cloud/2025/05/22/13/20250522134658-7JW1YNXG.json
               configUrl: 'https://files.bpcontent.cloud/2025/05/22/13/20250522134658-7JW1YNXG.json',
               hostUrl: 'https://cdn.botpress.cloud/webchat/v2.4',
               botName: 'Dr. Ross',
