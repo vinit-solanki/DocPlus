@@ -146,7 +146,7 @@ function MyAppointments() {
             );
             setSuccessMessage("Payment successful!");
           } catch (err) {
-            setError("Payment verification failed. Please contact support.");
+            setError("Try refreshing the page or Please contact support.");
             console.error("Error verifying payment:", err.response?.data || err);
           }
         },
