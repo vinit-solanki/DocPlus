@@ -30,7 +30,7 @@ function MyAppointments() {
       console.error("Error fetching appointments:", err.response?.data || err);
       const errorMessage =
         err.response?.data?.message ||
-        "Failed to fetch appointments. Please try again.";
+        "Please Refresh the page or Please try again.";
       setError(errorMessage);
       if (err.response?.status === 404) {
         setError("Please complete your profile to view appointments.");
